@@ -1,0 +1,440 @@
+/* 관리자 페이지 (admin.html) 전용 스타일 — 사이트 공통 style.css 의 색을 그대로 씁니다 */
+
+body.admin {
+  background: var(--sand);
+  padding-bottom: 6rem;
+}
+
+.admin-top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--line);
+  background: var(--brand);
+  color: var(--white);
+}
+.admin-top__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding: 0.625rem 1.25rem;
+}
+.admin-top__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.admin-top__brand {
+  font-weight: 800;
+}
+.admin-top__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.admin-top .btn--outline {
+  border-color: var(--white);
+  background: transparent;
+  color: var(--white);
+}
+.admin-top .btn--outline:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+.admin-top :focus-visible {
+  outline-color: var(--white);
+}
+
+.admin-main {
+  max-width: 90rem;
+  margin-inline: auto;
+  padding: 1.5rem 1.25rem 2rem;
+}
+.admin-login {
+  max-width: 36rem;
+  margin: 2rem auto;
+  border-radius: var(--radius);
+  background: var(--white);
+  padding: 2rem 1.5rem;
+}
+.admin-msg {
+  min-height: 1.75rem;
+  font-weight: 600;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.admin-tabs__btn {
+  min-height: 3rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line-strong);
+  background: var(--white);
+  padding-inline: 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.admin-tabs__btn.is-on {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--white);
+}
+
+.admin-cols {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (min-width: 64rem) {
+  .admin-cols { grid-template-columns: 18rem minmax(0, 1fr); }
+  .admin-list { position: sticky; top: 5rem; }
+}
+.admin-list {
+  border-radius: var(--radius);
+  background: var(--white);
+  padding: 1rem;
+}
+.admin-list__items {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.admin-list__item {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  background: var(--white);
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+}
+.admin-list__item:hover {
+  border-color: var(--ink);
+}
+.admin-list__item.is-on {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+.admin-list__name {
+  display: block;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.admin-list__meta {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.admin-editor {
+  min-width: 0;
+  border-radius: var(--radius);
+  background: var(--white);
+  padding: 1.25rem;
+}
+@media (min-width: 48rem) {
+  .admin-editor { padding: 2rem; }
+}
+.admin-editor--wide {
+  max-width: 56rem;
+}
+.aeditor__head {
+  margin-bottom: 1rem;
+}
+.aeditor__foot {
+  margin-top: 2rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.5rem;
+}
+
+/* 입력 묶음 */
+.afs {
+  margin: 1.5rem 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  min-width: 0;
+}
+.afs__title {
+  padding-inline: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.afs__desc {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+/* 입력 칸 */
+.af {
+  display: block;
+  margin-top: 1rem;
+}
+.af__label {
+  display: block;
+  font-weight: 700;
+}
+.af__req {
+  margin-left: 0.25rem;
+  font-style: normal;
+  font-size: 0.875rem;
+  color: #a33a1f;
+}
+.af__help {
+  display: block;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.af input[type="text"],
+.af input[type="password"],
+.af textarea,
+.af select {
+  margin-top: 0.375rem;
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--white);
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.af textarea {
+  resize: vertical;
+}
+.af input:disabled {
+  background: var(--sand);
+  color: var(--ink-soft);
+}
+.af input:focus,
+.af textarea:focus,
+.af select:focus {
+  border-color: var(--brand);
+  outline: 2px solid var(--brand);
+  outline-offset: 0;
+}
+.af-pair {
+  display: grid;
+  gap: 0 1rem;
+}
+@media (min-width: 40rem) {
+  .af-pair { grid-template-columns: 1fr 1fr; }
+}
+.af-check {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.af-check input {
+  margin-top: 0.3rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+}
+.af-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+}
+.afile {
+  position: relative;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+.afile input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.afile:focus-within {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+
+/* 반복 줄 */
+.arows {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.arow {
+  border-radius: var(--radius-sm);
+  background: var(--sand);
+  padding: 0.25rem 1rem 1rem;
+}
+.arow__fields {
+  display: grid;
+  gap: 0 1rem;
+}
+@media (min-width: 48rem) {
+  .arow__fields { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+}
+.arow__tools {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.arows > .btn {
+  justify-self: start;
+}
+.agroup {
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 1rem 1rem;
+}
+.agroup__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+.agroup__head .af {
+  flex: 1 1 14rem;
+}
+
+/* 사진 */
+.aphoto {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--sand);
+  padding: 1rem;
+}
+@media (min-width: 48rem) {
+  .aphoto { grid-template-columns: 14rem minmax(0, 1fr); }
+}
+.aphoto__img {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--sand-deep);
+}
+.aphoto__img--plan {
+  max-width: 24rem;
+  margin-top: 0.5rem;
+  aspect-ratio: 4 / 3;
+}
+.aphoto__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.aphoto__img--plan img {
+  object-fit: contain;
+}
+.aphoto__fields .af:first-child {
+  margin-top: 0;
+}
+.aphoto__badge {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  border-radius: 4px;
+  background: var(--brand);
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--white);
+}
+.aphoto__badge--warn {
+  top: auto;
+  bottom: 0.5rem;
+  background: var(--ink);
+}
+
+.btn--danger {
+  border-color: #a33a1f;
+  background: #a33a1f;
+  color: var(--white);
+}
+.adanger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: #fbeee9;
+  padding: 1rem;
+}
+
+/* 저장 줄 */
+.admin-savebar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  border-top: 1px solid var(--line);
+  background: var(--white);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.admin-savebar__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding: 0.625rem 1.25rem;
+}
+.admin-savebar__msg {
+  font-weight: 600;
+}
+.admin-savebar__msg.is-warn {
+  color: #a33a1f;
+}
+.admin-savebar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.admin-savebar .btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 미리보기 */
+.admin-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+}
+.admin-preview[hidden] {
+  display: none;
+}
+.admin-preview__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  background: #fff8e6;
+  border-bottom: 1px solid var(--line);
+  padding: 0.625rem 1.25rem;
+}
+.admin-preview__body {
+  flex: 1;
+  overflow-y: auto;
+}
