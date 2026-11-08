@@ -438,3 +438,26 @@ body.admin {
   flex: 1;
   overflow-y: auto;
 }
+
+/* 글자처럼 보이는 버튼 */
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+/* 보안코드 바꾸기 */
+.admin-code {
+  margin-bottom: 1.25rem;
+  max-width: 48rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--brand);
+  background: var(--white);
+  padding: 1.25rem;
+}

@@ -4,7 +4,9 @@
  * - 제품 추가·수정·삭제, 사진·평면도 올리기, 제품군 설명 수정
  * - ‘저장’을 누르면 GitHub 저장소(main)에 한 번의 기록(커밋)으로 저장되고, GitHub Pages 가 사이트를 다시 만듭니다.
  * - 서버가 없으므로 GitHub 토큰(저장용 열쇠)으로 GitHub 에 직접 저장합니다.
- *   토큰은 이 브라우저에만 보관되며 저장소나 다른 곳으로 보내지 않습니다. (GitHub API 에만 사용)
+ * - 토큰은 사용자가 정한 보안코드로 잠가(AES-GCM 암호화) data/admin-lock.json 에 저장합니다.
+ *   보안코드는 어디에도 저장하지 않으며, 보안코드 없이는 토큰을 꺼낼 수 없습니다.
+ *   토큰은 GitHub API 에만 사용하고 다른 곳으로 보내지 않습니다.
  */
 (function () {
   "use strict";
@@ -17,6 +19,8 @@
   var TOKEN_KEY = "gd-admin-token";
   var PRODUCTS_PATH = "data/products.js";
   var CATEGORIES_PATH = "data/categories.js";
+  var LOCK_PATH = "data/admin-lock.json";
+  var KDF_ITERATIONS = 600000;
 
   var state = {
     token: null,
@@ -141,11 +145,83 @@
       });
   }
 
+  /* ───────── 보안코드 잠금 (토큰 암호화) ───────── */
+
+  function bytesToB64(bytes) {
+    var bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function deriveKey(code, salt, iterations) {
+    return crypto.subtle
+      .importKey("raw", new TextEncoder().encode(code.normalize("NFC")), "PBKDF2", false, ["deriveKey"])
+      .then(function (base) {
+        return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: iterations, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, [
+          "encrypt",
+          "decrypt",
+        ]);
+      });
+  }
+  function lockToken(token, code) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return deriveKey(code, salt, KDF_ITERATIONS)
+      .then(function (key) {
+        return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, new TextEncoder().encode(token));
+      })
+      .then(function (buf) {
+        return {
+          v: 1,
+          kdf: "PBKDF2-SHA256",
+          iterations: KDF_ITERATIONS,
+          salt: bytesToB64(salt),
+          iv: bytesToB64(iv),
+          data: bytesToB64(new Uint8Array(buf)),
+          note: "광덕건업 관리자 페이지용 GitHub 토큰을 보안코드로 잠근 것입니다. 보안코드 없이는 풀 수 없습니다.",
+        };
+      });
+  }
+  function unlockToken(lock, code) {
+    return deriveKey(code, b64ToBytes(lock.salt), lock.iterations)
+      .then(function (key) {
+        return crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(lock.iv) }, key, b64ToBytes(lock.data));
+      })
+      .then(function (buf) {
+        return new TextDecoder().decode(buf);
+      });
+  }
+  /** 보안코드 규칙: 12자 이상, 숫자만으로 된 코드는 안 됨 */
+  function checkNewCode(a, b) {
+    if (!a || a.length < 12) return "보안코드는 12자 이상으로 만들어 주세요. (단어 4개 이상의 문장을 권합니다)";
+    if (/^[0-9\s]+$/.test(a)) return "숫자만으로 된 보안코드는 쉽게 풀립니다. 글자를 섞어 주세요.";
+    if (a !== b) return "두 번 입력한 보안코드가 서로 다릅니다.";
+    return null;
+  }
+  function saveLock(code) {
+    return lockToken(state.token, code).then(function (lock) {
+      return commitFiles([{ path: LOCK_PATH, b64: utf8ToB64(JSON.stringify(lock, null, 2) + "\n") }], "관리자: 보안코드 설정");
+    });
+  }
+  function loadLock() {
+    return fetch(LOCK_PATH + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
   /* ───────── 연결 ───────── */
 
-  function connect(token, remember) {
+  function connect(token, msg) {
     state.token = token;
-    var msg = $("#login-msg");
     msg.textContent = "연결하는 중입니다…";
     return gh("GET", repoPath(""))
       .then(function (repo) {
@@ -170,8 +246,9 @@
           var m = /^(.+)\.html$/.exec(f.name);
           if (m) state.savedSlugs[m[1]] = true;
         });
+        // 이 탭을 닫기 전까지는 새로고침해도 다시 묻지 않습니다 (탭을 닫으면 지워짐)
         try {
-          (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
+          sessionStorage.setItem(TOKEN_KEY, token);
         } catch (e) {
           /* 저장 공간을 쓸 수 없으면 이번 화면에서만 사용 */
         }
@@ -179,10 +256,12 @@
         show("connected");
         state.selected = 0;
         renderAll();
+        return true;
       })
       .catch(function (err) {
         state.token = null;
         msg.textContent = friendly(err);
+        return false;
       });
   }
 
@@ -1197,26 +1276,87 @@
     if (b.opts.rerender) renderEditor();
   }
 
+  function showTokenBox(on) {
+    $("#token-box").hidden = !on;
+    $("#unlock-box").hidden = on;
+    var f = on ? $("#token-input") : $("#code-input");
+    if (f) f.focus();
+  }
+
   function init() {
     var saved = null;
     try {
-      saved = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+      saved = sessionStorage.getItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY); // 이전 방식(기기에 기억하기)으로 남은 토큰은 지웁니다
     } catch (e) {
       saved = null;
     }
     show("login");
-    if (saved) connect(saved, !!localStorage.getItem(TOKEN_KEY));
+    loadLock().then(function (lock) {
+      state.lock = lock && lock.data ? lock : null;
+      if (saved) {
+        connect(saved, state.lock ? $("#unlock-msg") : $("#login-msg"));
+      }
+      showTokenBox(!state.lock);
+    });
 
-    $("#token-connect").addEventListener("click", function () {
-      var t = $("#token-input").value.trim();
-      if (!t) {
-        $("#login-msg").textContent = "토큰을 붙여 넣어 주세요.";
+    // 보안코드로 들어가기
+    function unlock() {
+      var code = $("#code-input").value;
+      var msg = $("#unlock-msg");
+      if (!code) {
+        msg.textContent = "보안코드를 입력해 주세요.";
         return;
       }
-      connect(t, $("#token-remember").checked);
+      msg.textContent = "확인하는 중입니다…";
+      unlockToken(state.lock, code)
+        .then(function (token) {
+          $("#code-input").value = "";
+          return connect(token, msg).then(function (ok) {
+            if (!ok && /토큰이 맞지 않거나 만료/.test(msg.textContent))
+              msg.textContent = "보안코드는 맞지만 GitHub 토큰이 만료되었습니다. 아래 ‘새 토큰으로 다시 설정하기’를 눌러 주세요.";
+          });
+        })
+        .catch(function () {
+          msg.textContent = "보안코드가 맞지 않습니다.";
+        });
+    }
+    $("#code-connect").addEventListener("click", unlock);
+    $("#code-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") unlock();
     });
-    $("#token-input").addEventListener("keydown", function (e) {
-      if (e.key === "Enter") $("#token-connect").click();
+    $("#show-token-box").addEventListener("click", function () {
+      showTokenBox(true);
+    });
+
+    // 처음 설정: 토큰으로 연결하고 보안코드로 잠가 저장
+    $("#token-connect").addEventListener("click", function () {
+      var t = $("#token-input").value.trim();
+      var msg = $("#login-msg");
+      if (!t) {
+        msg.textContent = "토큰을 붙여 넣어 주세요.";
+        return;
+      }
+      var bad = checkNewCode($("#code-new").value, $("#code-new2").value);
+      if (bad) {
+        msg.textContent = bad;
+        return;
+      }
+      var code = $("#code-new").value;
+      connect(t, msg).then(function (ok) {
+        if (!ok) return;
+        $("#token-input").value = "";
+        $("#code-new").value = "";
+        $("#code-new2").value = "";
+        setSaveMsg("보안코드를 저장하는 중입니다…");
+        saveLock(code)
+          .then(function () {
+            setSaveMsg("보안코드를 저장했습니다. 1~10분 뒤부터 다른 기기에서도 보안코드로 들어올 수 있습니다.");
+          })
+          .catch(function (err) {
+            setSaveMsg("보안코드를 저장하지 못했습니다. ‘보안코드 바꾸기’로 다시 해 주세요. " + friendly(err), true);
+          });
+      });
     });
 
     document.addEventListener("input", onInput);
@@ -1286,6 +1426,30 @@
       if (g === "save") save();
       if (g === "preview") openPreview();
       if (g === "close-preview") closePreview();
+      if (g === "change-code") {
+        var box = $("#code-change");
+        box.hidden = !box.hidden;
+        $("#code-change-msg").textContent = "";
+        if (!box.hidden) $("#code-change-1").focus();
+      }
+      if (g === "save-code") {
+        var m = $("#code-change-msg");
+        var bad = checkNewCode($("#code-change-1").value, $("#code-change-2").value);
+        if (bad) {
+          m.textContent = bad;
+          return;
+        }
+        m.textContent = "저장하는 중입니다…";
+        saveLock($("#code-change-1").value)
+          .then(function () {
+            $("#code-change-1").value = "";
+            $("#code-change-2").value = "";
+            m.textContent = "새 보안코드를 저장했습니다. 1~10분 뒤부터 새 코드로 들어올 수 있습니다.";
+          })
+          .catch(function (err) {
+            m.textContent = "저장하지 못했습니다. " + friendly(err);
+          });
+      }
       if (g === "add-product") {
         state.products.push(newProduct());
         state.selected = state.products.length - 1;
