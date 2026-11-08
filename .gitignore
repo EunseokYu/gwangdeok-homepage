@@ -1,17 +1,8 @@
-# dependencies
-/node_modules
-
-# next.js
-/.next/
-/out/
-next-env.d.ts
-*.tsbuildinfo
-
-# env (비밀값은 절대 커밋하지 않습니다)
+# 비밀값·개인정보가 담긴 파일은 절대 올리지 않습니다
 .env
-.env*.local
+.env*
 
-# misc
+# 컴퓨터가 자동으로 만드는 파일
 .DS_Store
-npm-debug.log*
-.vercel
+Thumbs.db
+desktop.ini

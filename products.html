@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- 보안: 이 사이트 안의 파일만 불러오도록 제한합니다 (외부 스크립트 차단) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <!-- 검색 제외: 예시 자료를 실제 자료로 바꾸고 정식 공개할 때 아래 한 줄을 지웁니다 -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>제품 안내 | 광덕건업</title>
+    <meta name="description" content="이동식주택, 농촌체류형 쉼터, 중고컨테이너의 사진과 기본 사양, 가격 안내를 확인하세요.">
+    <meta name="theme-color" content="#ffffff">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="og:site_name" content="(주)광덕건업">
+    <meta property="og:title" content="제품 안내 | 광덕건업">
+    <meta property="og:description" content="이동식주택, 농촌체류형 쉼터, 중고컨테이너의 사진과 기본 사양, 가격 안내를 확인하세요.">
+    <meta property="og:image" content="brand/og-image.png">
+    <meta property="og:image:alt" content="(주)광덕건업 로고와 이동식주택·농촌체류형 쉼터 제작·설치, 대표전화 041-551-2836 안내">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" href="brand/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="brand/apple-icon.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="data/company.js" defer></script>
+    <script src="data/site.js" defer></script>
+    <script src="data/products.js" defer></script>
+    <script src="data/cases.js" defer></script>
+    <script src="data/faq.js" defer></script>
+    <script src="data/process.js" defer></script>
+    <script src="js/core.js" defer></script>
+    <script src="js/layout.js" defer></script>
+    <script src="js/gallery.js" defer></script>
+    <script src="js/pages.js" defer></script>
+  </head>
+  <body data-root="" data-nav="products">
+    <noscript>
+      <div class="noscript">이 페이지는 자바스크립트를 켜야 모든 내용이 보입니다. 상담 전화 <a href="tel:0415512836">041-551-2836</a></div>
+    </noscript>
+    <main id="main" tabindex="-1">
+      <div class="intro">
+        <div class="container intro__inner">
+          <nav aria-label="현재 위치"><ol class="crumbs"><li><a href="index.html">홈</a><svg class="icon icon--xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5.5 6.5 6.5L9 18.5"/></svg></li><li><span aria-current="page">제품 안내</span></li></ol></nav>
+          <h1 class="intro__title">제품 안내</h1>
+          <p class="intro__desc">제품별 사진과 기본 사양, 가격 안내를 확인하세요. 분류 버튼을 누르면 해당 제품만 볼 수 있습니다.</p>
+        </div>
+      </div>
+
+      <section class="section-y" aria-label="제품 목록">
+        <div class="container">
+          <div class="mb-6" data-component="notice-products"></div>
+          <div data-component="product-browser" data-url="true" data-heading="h2"></div>
+        </div>
+      </section>
+
+      <section id="categories" class="section section--sand section-y" aria-labelledby="categories-title">
+        <div class="container">
+          <div class="section__head">
+            <div class="section__titles"><h2 id="categories-title" class="section__title">제품 분류 안내</h2></div>
+          </div>
+          <div class="section__body">
+            <div data-component="categories"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="price-guide" class="section section-y" aria-labelledby="price-guide-title">
+        <div class="container">
+          <div class="section__head">
+            <div class="section__titles"><h2 id="price-guide-title" class="section__title">제품 가격과 총비용은 다릅니다</h2><p class="section__desc">설치까지 드는 총비용은 제품 가격에 현장 여건에 따른 비용이 더해집니다.</p></div>
+          </div>
+          <div class="section__body">
+            <div data-component="cost-guide"></div>
+          </div>
+        </div>
+      </section>
+
+      <div data-component="call-banner"></div>
+    </main>
+  </body>
+</html>
