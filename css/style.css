@@ -2663,3 +2663,9 @@ main:focus {
   .pd-end .btn,
   .pd-intro__actions .btn { padding-inline: 0.75rem; white-space: nowrap; }
 }
+
+/* 넓은 화면에서만 줄을 바꾸는 줄바꿈 (휴대폰에서는 자연스럽게 이어짐) */
+@media (max-width: 39.999rem) {
+  .br-wide { display: none; }
+  .hero__lead { font-size: 1.125rem; }
+}
