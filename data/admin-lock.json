@@ -1,1 +1,9 @@
-null
+{
+  "v": 1,
+  "kdf": "PBKDF2-SHA256",
+  "iterations": 600000,
+  "salt": "7Z8HZm0Lc4+1ZTzXTBPFkg==",
+  "iv": "IxD1G0hTs3meyxVf",
+  "data": "jjcDMjKiTRVYli2g5tGZgBNQRAiA99NW851POvs26RHgxd71ohC/wX8ScFnOPPDntGApz9q9cfK2PNggIAuZ9pd7LCdeeU/Vgz3wpfW2svc0eKtOfy5/OZ9GO2jdz3vV65PPSe75jpN3Vr7bPw==",
+  "note": "광덕건업 관리자 페이지용 GitHub 토큰을 보안코드로 잠근 것입니다. 보안코드 없이는 풀 수 없습니다."
+}
