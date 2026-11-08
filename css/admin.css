@@ -461,3 +461,471 @@ body.admin {
   background: var(--white);
   padding: 1.25rem;
 }
+
+/* ═════════ 개편된 관리자 화면 ═════════ */
+
+.admin-list__tools {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.admin-list__tools .af {
+  margin: 0;
+}
+.admin-list__tools input,
+.admin-list__tools select {
+  margin-top: 0 !important;
+}
+.admin-list__count {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+.admin-list__items {
+  margin-top: 0.5rem;
+}
+.alist {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  background: var(--white);
+  padding: 0.5rem;
+  text-align: left;
+}
+.alist:hover {
+  border-color: var(--ink);
+}
+.alist.is-on {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+.alist__thumb {
+  width: 3.5rem;
+  height: 2.625rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--sand-deep);
+}
+.alist__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.alist__text {
+  min-width: 0;
+}
+.alist__name {
+  display: block;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.alist__meta {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+/* 편집 머리 */
+.aedit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+.aedit-head__cat {
+  font-weight: 600;
+  color: var(--brand);
+}
+.aedit-head__name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.aedit-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.aedit-foot {
+  margin-top: 2rem;
+}
+
+/* 공개 준비도 */
+.aready {
+  margin-top: 1rem;
+  border-radius: var(--radius);
+  background: var(--sand);
+  padding: 1rem 1.25rem;
+}
+.aready__title {
+  font-size: 1.125rem;
+}
+.aready__done {
+  margin-left: 0.5rem;
+  border-radius: 4px;
+  background: var(--brand);
+  padding: 0 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--white);
+}
+.aready__bar {
+  margin-top: 0.5rem;
+  height: 0.625rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sand-deep);
+}
+.aready__bar span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+.aready__list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.aready__item {
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--white);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9375rem;
+}
+.is-ok .aready__item {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.is-todo .aready__item {
+  border-style: dashed;
+  font-weight: 700;
+}
+
+/* 펼침 묶음 */
+.asec {
+  margin-top: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--white);
+}
+.asec__head {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+}
+.asec__head:hover {
+  background: var(--sand);
+}
+.asec[open] > .asec__head {
+  border-bottom: 1px solid var(--line);
+}
+.asec__title {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.asec__title::before {
+  content: "▸ ";
+  color: var(--ink-soft);
+}
+.asec[open] .asec__title::before {
+  content: "▾ ";
+}
+.asec__badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong);
+  padding: 0.125rem 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.asec__badge.is-done {
+  border: 0;
+  background: var(--brand);
+  color: var(--white);
+}
+.asec__badge--opt {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.asec__body {
+  padding: 0.5rem 1.25rem 1.5rem;
+}
+.asec__desc {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+.aempty {
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* 칸 배치 */
+.agrid {
+  display: grid;
+  gap: 0 1.25rem;
+}
+@media (min-width: 48rem) {
+  .agrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.af__count,
+.af__py {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+.af__py:empty {
+  display: none;
+}
+
+/* 버튼처럼 고르기 */
+.af-radio {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.af-radio__opts {
+  margin-top: 0.375rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.af-radio__opt {
+  position: relative;
+  cursor: pointer;
+}
+.af-radio__opt input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+}
+.af-radio__opt span {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line-strong);
+  background: var(--white);
+  padding: 0 1rem;
+  font-weight: 600;
+}
+.af-radio__opt input:checked + span {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--white);
+}
+.af-radio__opt input:focus-visible + span {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* 사진 올리기 칸 */
+.adrop {
+  position: relative;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius);
+  border: 2px dashed var(--brand);
+  background: var(--brand-tint);
+  padding: 1.25rem 1rem;
+  text-align: center;
+  cursor: pointer;
+}
+.adrop.is-over {
+  background: #d7e4dc;
+}
+.adrop input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.adrop:focus-within {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+.adrop__big {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--brand);
+}
+.adrop__small {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+/* 사진 카드 */
+.aphotos {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 48rem) {
+  .aphotos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 90rem) {
+  .aphotos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.aphoto2 {
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--sand);
+  padding: 0.75rem;
+}
+.aphoto2 .af:first-of-type {
+  margin-top: 0.75rem;
+}
+.aphoto2__img {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--sand-deep);
+}
+.aphoto2__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.aphoto2__img--plan {
+  max-width: 22rem;
+  margin-top: 0.5rem;
+}
+.aphoto2__img--plan img {
+  object-fit: contain;
+}
+.aphoto2__tools {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+/* 크기 */
+.asize {
+  display: grid;
+  gap: 0 1.25rem;
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+}
+@media (min-width: 48rem) {
+  .asize { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* 기본 사양 */
+.aspec {
+  margin-top: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  padding: 0.75rem 1rem 1rem;
+}
+.aspec__head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.aspec__name {
+  flex: 1;
+  min-height: 2.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--brand);
+}
+.aspec__rows {
+  margin-bottom: 0.75rem;
+}
+.aspec__row {
+  display: grid;
+  gap: 0 0.75rem;
+  align-items: end;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 0.5rem;
+}
+@media (min-width: 64rem) {
+  .aspec__row { grid-template-columns: 1fr 2fr 1.5fr auto; }
+}
+.aspec__del {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+
+/* 옵션·포함 범위 */
+.aopts {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.aopt {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--sand);
+  padding: 0.25rem 1rem 1rem;
+}
+.ascope {
+  margin-block: 0.5rem;
+}
+.ascope__row {
+  display: grid;
+  gap: 0 1rem;
+  align-items: end;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 0.75rem;
+}
+@media (min-width: 48rem) {
+  .ascope__row { grid-template-columns: 1fr auto auto; }
+}
+.ascope__row .btn {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+
+/* 제품군 설명 */
+.acat {
+  margin-top: 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  padding: 0.75rem 1.25rem 1.25rem;
+}
+.acat__title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+@media (max-width: 47.999rem) {
+  .admin-editor { padding: 1rem; }
+  .asec__head,
+  .asec__body { padding-inline: 0.875rem; }
+  .admin-savebar__actions { width: 100%; }
+  .admin-savebar__actions .btn { flex: 1; padding-inline: 0.75rem; }
+}
+
+/* 휴대폰: 위·아래 고정 막대를 얇게 */
+@media (max-width: 47.999rem) {
+  .admin-top { position: static; }
+  .admin-top__inner { padding: 0.5rem 0.875rem; }
+  .admin-top__actions .btn { min-height: 2.5rem; padding: 0.25rem 0.625rem; font-size: 0.9375rem; }
+  .admin-savebar__inner { padding: 0.5rem 0.75rem; gap: 0.375rem; }
+  .admin-savebar__msg { font-size: 0.875rem; line-height: 1.4; }
+  .admin-savebar .btn { min-height: 2.75rem; font-size: 1rem; }
+  .admin-main { padding: 1rem 0.75rem 2rem; }
+}

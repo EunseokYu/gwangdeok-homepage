@@ -11,18 +11,18 @@
     <title>관리자 | 광덕건업</title>
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="icon" href="brand/icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/style.css?v=20261108d">
-    <link rel="stylesheet" href="css/admin.css?v=20261108d">
-    <script src="data/company.js?v=20261108d" defer></script>
-    <script src="data/categories.js?v=20261108d" defer></script>
-    <script src="data/products.js?v=20261108d" defer></script>
-    <script src="data/cases.js?v=20261108d" defer></script>
-    <script src="data/process.js?v=20261108d" defer></script>
-    <script src="js/core.js?v=20261108d" defer></script>
-    <script src="js/gallery.js?v=20261108d" defer></script>
-    <script src="js/product-detail.js?v=20261108d" defer></script>
-    <script src="js/admin-format.js?v=20261108d" defer></script>
-    <script src="js/admin.js?v=20261108d" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=20261108e">
+    <link rel="stylesheet" href="css/admin.css?v=20261108e">
+    <script src="data/company.js?v=20261108e" defer></script>
+    <script src="data/categories.js?v=20261108e" defer></script>
+    <script src="data/products.js?v=20261108e" defer></script>
+    <script src="data/cases.js?v=20261108e" defer></script>
+    <script src="data/process.js?v=20261108e" defer></script>
+    <script src="js/core.js?v=20261108e" defer></script>
+    <script src="js/gallery.js?v=20261108e" defer></script>
+    <script src="js/product-detail.js?v=20261108e" defer></script>
+    <script src="js/admin-format.js?v=20261108e" defer></script>
+    <script src="js/admin.js?v=20261108e" defer></script>
   </head>
   <body class="admin" data-root="">
     <noscript><div class="noscript">관리자 페이지는 자바스크립트를 켜야 사용할 수 있습니다.</div></noscript>
@@ -102,6 +102,11 @@
           <div class="admin-cols">
             <aside class="admin-list" aria-label="제품 목록">
               <button type="button" class="btn btn--primary btn--block" data-act-global="add-product">+ 새 제품 추가</button>
+              <div class="admin-list__tools">
+                <label class="af"><span class="sr-only">제품 이름으로 찾기</span><input type="text" id="list-search" placeholder="이름으로 찾기"></label>
+                <label class="af"><span class="sr-only">제품군으로 거르기</span><select id="list-filter"><option value="">모든 제품군</option></select></label>
+              </div>
+              <p class="admin-list__count" id="list-count"></p>
               <ul id="product-list" class="admin-list__items"></ul>
             </aside>
             <div id="editor" class="admin-editor"></div>
@@ -119,11 +124,16 @@
       <div class="admin-savebar__inner">
         <p id="save-msg" class="admin-savebar__msg" role="status" aria-live="polite">변경 사항이 없습니다.</p>
         <div class="admin-savebar__actions">
-          <button type="button" class="btn btn--outline" data-act-global="preview">미리보기</button>
+          <button type="button" class="btn btn--outline" id="revert-btn" data-act-global="revert" disabled>변경 취소</button>
           <button type="button" class="btn btn--primary" id="save-btn" data-act-global="save" disabled>저장하고 사이트에 반영</button>
         </div>
       </div>
     </div>
+
+    <datalist id="space-list">
+      <option value="외관"></option><option value="거실"></option><option value="주방"></option><option value="침실"></option><option value="욕실"></option>
+      <option value="다락"></option><option value="데크"></option><option value="현관"></option><option value="수납"></option><option value="창호"></option><option value="디테일"></option>
+    </datalist>
 
     <!-- 미리보기 -->
     <div class="admin-preview" id="preview" hidden>

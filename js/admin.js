@@ -266,6 +266,7 @@
         msg.textContent = "";
         show("connected");
         state.selected = 0;
+        takeSnapshot();
         renderAll();
         return true;
       })
@@ -307,8 +308,23 @@
     v = String(v == null ? "" : v).trim();
     return v === "" ? null : v;
   }
+  function filled(v) {
+    return v != null && String(v).trim() !== "";
+  }
   function help(t) {
     return t ? '<span class="af__help">' + t + "</span>" : "";
+  }
+  function num(v) {
+    var n = String(v == null ? "" : v).replace(/[^0-9]/g, "");
+    return n ? Number(n) : null;
+  }
+  function won(n) {
+    return n == null ? "" : Number(n).toLocaleString("ko-KR") + "원";
+  }
+  /** "약 33㎡" → "약 10평" */
+  function pyeong(text) {
+    var m = /([\d.]+)\s*(㎡|m²|m2|제곱미터)/.exec(text || "");
+    return m ? "약 " + Math.round((parseFloat(m[1]) / 3.3058) * 10) / 10 + "평" : "";
   }
 
   /** 한 줄 글자 */
@@ -319,21 +335,31 @@
       '<label class="af' + (o.cls ? " " + o.cls : "") + '"><span class="af__label">' + label + (o.required ? ' <em class="af__req">필수</em>' : "") + "</span>" +
       help(o.help) +
       '<input type="text" data-b="' + id + '" value="' + esc(get() == null ? "" : get()) + '"' +
-      (o.placeholder ? ' placeholder="' + esc(o.placeholder) + '"' : "") + (o.disabled ? " disabled" : "") + (o.inputmode ? ' inputmode="' + o.inputmode + '"' : "") + "></label>"
+      (o.placeholder ? ' placeholder="' + esc(o.placeholder) + '"' : "") + (o.disabled ? " disabled" : "") +
+      (o.inputmode ? ' inputmode="' + o.inputmode + '"' : "") + (o.list ? ' list="' + o.list + '"' : "") + ">" +
+      (o.after || "") + "</label>"
     );
   }
-  /** 여러 줄 글자 */
+  /** 여러 줄 글자 (count: 글자 수 표시 [최소, 최대]) */
   function fArea(label, get, set, o) {
     o = o || {};
     var id = bind(get, set, o);
+    var v = get() == null ? "" : String(get());
     return (
-      '<label class="af' + (o.cls ? " " + o.cls : "") + '"><span class="af__label">' + label + "</span>" + help(o.help) +
-      '<textarea rows="' + (o.rows || 3) + '" data-b="' + id + '"' + (o.placeholder ? ' placeholder="' + esc(o.placeholder) + '"' : "") + ">" +
-      esc(get() == null ? "" : get()) + "</textarea></label>"
+      '<label class="af' + (o.cls ? " " + o.cls : "") + '"><span class="af__label">' + label + (o.required ? ' <em class="af__req">필수</em>' : "") + "</span>" + help(o.help) +
+      '<textarea rows="' + (o.rows || 3) + '" data-b="' + id + '"' + (o.count ? ' data-count="' + o.count.join(",") + '"' : "") +
+      (o.placeholder ? ' placeholder="' + esc(o.placeholder) + '"' : "") + ">" + esc(v) + "</textarea>" +
+      (o.count ? '<span class="af__count" data-count-for="' + id + '">' + countText(v.length, o.count) + "</span>" : "") +
+      "</label>"
     );
+  }
+  function countText(n, range) {
+    var tip = n === 0 ? "" : n < range[0] ? " · 조금 더 적어도 좋아요" : n > range[1] ? " · 조금 줄여 주세요" : " · 알맞아요";
+    return n + "자 (권장 " + range[0] + "~" + range[1] + "자)" + tip;
   }
   /** 한 줄에 하나씩 쓰는 목록 */
   function fLines(label, getArr, setArr, o) {
+    o = o || {};
     return fArea(
       label,
       function () {
@@ -349,71 +375,63 @@
             .filter(Boolean)
         );
       },
-      Object.assign({ rows: 4 }, o, { help: ((o && o.help) || "") + (o && o.help ? " " : "") + "한 줄에 하나씩 적습니다." })
+      Object.assign({ rows: 3 }, o, { help: (o.help ? o.help + " " : "") + "한 줄에 하나씩 적습니다." })
     );
   }
-  /** 고르기 */
+  /** 버튼처럼 생긴 하나 고르기 */
+  function fRadio(label, choices, get, set, o) {
+    o = o || {};
+    var id = bind(get, set, o);
+    var cur = get();
+    var name = "r" + id + "-" + Math.random().toString(36).slice(2, 7);
+    var values = esc(JSON.stringify(choices.map(function (c) {
+      return c[0];
+    })));
+    return (
+      '<fieldset class="af af-radio"><legend class="af__label">' + label + "</legend>" + help(o.help) +
+      '<div class="af-radio__opts">' +
+      choices
+        .map(function (c, i) {
+          return (
+            '<label class="af-radio__opt"><input type="radio" name="' + name + '" value="' + i + '" data-b="' + id + '" data-choices="' + values + '"' +
+            (c[0] === cur ? " checked" : "") + "><span>" + esc(c[1]) + "</span></label>"
+          );
+        })
+        .join("") +
+      "</div></fieldset>"
+    );
+  }
+  /** 목록에서 고르기 */
   function fSelect(label, choices, get, set, o) {
     o = o || {};
     var id = bind(get, set, o);
     var cur = get();
+    var values = esc(JSON.stringify(choices.map(function (c) {
+      return c[0];
+    })));
     return (
       '<label class="af' + (o.cls ? " " + o.cls : "") + '"><span class="af__label">' + label + "</span>" + help(o.help) +
-      '<select data-b="' + id + '">' +
+      '<select data-b="' + id + '" data-choices="' + values + '">' +
       choices
         .map(function (c, i) {
           return '<option value="' + i + '"' + (c[0] === cur ? " selected" : "") + ">" + esc(c[1]) + "</option>";
         })
         .join("") +
       "</select></label>"
-    ).replace('data-b="' + id + '"', 'data-b="' + id + '" data-choices="' + esc(JSON.stringify(choices.map(function (c) {
-      return c[0];
-    }))) + '"');
+    );
   }
-  function fCheck(label, get, set) {
-    var id = bind(get, set);
+  function fCheck(label, get, set, o) {
+    var id = bind(get, set, o);
     return '<label class="af-check"><input type="checkbox" data-b="' + id + '"' + (get() ? " checked" : "") + "><span>" + label + "</span></label>";
   }
-  function btn(label, fn, cls) {
-    return '<button type="button" class="btn ' + (cls || "btn--outline btn--sm") + '" data-act="' + act(fn) + '">' + label + "</button>";
-  }
-  function fieldset(title, inner, desc) {
-    return '<fieldset class="afs"><legend class="afs__title">' + title + "</legend>" + (desc ? '<p class="afs__desc">' + desc + "</p>" : "") + inner + "</fieldset>";
+  function btn(label, fn, cls, attrs) {
+    return '<button type="button" class="btn ' + (cls || "btn--outline btn--sm") + '" data-act="' + act(fn) + '"' + (attrs || "") + ">" + label + "</button>";
   }
 
-  /** 줄 단위 반복 (예: 공간 구성 - 공간 이름·설명) */
-  function rows(list, renderRow, makeNew, addLabel) {
-    var html = '<div class="arows">';
-    list.forEach(function (item, i) {
-      html +=
-        '<div class="arow"><div class="arow__fields">' + renderRow(item, i) + '</div><div class="arow__tools">' +
-        (i > 0 ? btn("위로", function () {
-          var t = list[i - 1];
-          list[i - 1] = list[i];
-          list[i] = t;
-          changed(true);
-        }) : "") +
-        btn("삭제", function () {
-          list.splice(i, 1);
-          changed(true);
-        }) +
-        "</div></div>";
-    });
-    html += btn("+ " + addLabel, function () {
-      list.push(makeNew());
-      changed(true);
-    }) + "</div>";
-    return html;
-  }
+  /* ───────── 제품 기본값 ───────── */
 
-  /* ───────── 제품 편집 ───────── */
+  var SPACES = ["외관", "거실", "주방", "침실", "욕실", "다락", "데크", "현관", "수납", "창호", "디테일"];
 
-  var CAT_HINT = {
-    "mobile-home": "이동식주택",
-    shelter: "농촌체류형 쉼터",
-    "farm-hut": "농막",
-    container: "컨테이너",
-  };
   function defaultSpecGroups() {
     return [
       { group: "구조·골조", items: [{ label: "구조", value: null }] },
@@ -439,8 +457,8 @@
     while (taken[category + "-" + n] || state.savedSlugs[category + "-" + n]) n++;
     return category + "-" + n;
   }
-  function newProduct() {
-    var cat = (state.categories[0] && state.categories[0].id) || "mobile-home";
+  function newProduct(category) {
+    var cat = category || (state.categories[0] && state.categories[0].id) || "mobile-home";
     return {
       slug: newSlug(cat),
       category: cat,
@@ -478,6 +496,9 @@
     p.keySpecs = p.keySpecs || [];
     p.specGroups = p.specGroups || [];
     p.options = p.options || [];
+    p.options.forEach(function (o) {
+      o.cost = o.cost || { type: null, amount: null };
+    });
     p.customization = p.customization || { base: [], custom: [] };
     p.customization.base = p.customization.base || [];
     p.customization.custom = p.customization.custom || [];
@@ -485,12 +506,115 @@
     p.costScope = p.costScope || [];
     p.schedule = p.schedule || { productionNote: null, siteNote: null };
     p.relatedCaseSlugs = p.relatedCaseSlugs || [];
+    if (!("shortDescription" in p)) p.shortDescription = null;
     return p;
   }
-
   function imgSrc(src) {
     return state.previews[src] || src;
   }
+  function catOf(p) {
+    return (
+      state.categories.filter(function (c) {
+        return c.id === p.category;
+      })[0] || { id: p.category, label: p.category, fullLabel: p.category }
+    );
+  }
+
+  /* ───────── 공개 준비도 (무엇이 비었는지) ───────── */
+
+  function readiness(p) {
+    normalize(p);
+    var price = p.price;
+    var priced = price.kind !== "consult";
+    var realPhotos = p.images.filter(function (i) {
+      return !i.isDesignExample;
+    });
+    var specCount = 0;
+    p.specGroups.forEach(function (g) {
+      (g.items || []).forEach(function (it) {
+        if (filled(it.value) && !/예시/.test(it.value)) specCount++;
+      });
+    });
+    var ex = function (v) {
+      return filled(v) && !/예시|○/.test(v);
+    };
+    return [
+      { sec: "basic", label: "제품 이름", ok: ex(p.name) },
+      { sec: "basic", label: "판매 여부", ok: p.availability != null },
+      { sec: "basic", label: "공간 구성 요약", ok: ex(p.layoutSummary) },
+      { sec: "intro", label: "한 문장 소개", ok: ex(p.tagline) },
+      { sec: "intro", label: "짧은 소개", ok: ex(p.shortDescription) },
+      { sec: "photos", label: "실제 사진 1장 이상", ok: realPhotos.length > 0 },
+      {
+        sec: "photos",
+        label: "모든 사진에 공간 이름",
+        ok: p.images.length > 0 && p.images.every(function (i) {
+          return filled(i.space);
+        }),
+      },
+      { sec: "plan", label: "외형 크기", ok: !!(p.size.exterior && ex(p.size.exterior.value)) },
+      { sec: "plan", label: "실내 면적", ok: !!(p.size.interior && ex(p.size.interior.value)) },
+      { sec: "specs", label: "기본 사양 3개 이상", ok: specCount >= 3 },
+      { sec: "price", label: priced ? "가격 금액" : "가격 (가격 상담)", ok: !priced || price.amount != null },
+      { sec: "price", label: "부가세 포함 여부", ok: !priced || price.vat != null },
+      {
+        sec: "price",
+        label: "가격 포함 범위 확인",
+        ok: p.costScope.length > 0 && p.costScope.every(function (s) {
+          return s.status != null;
+        }),
+      },
+      { sec: "basic", label: "‘예시 데이터’ 체크 해제", ok: !p.isExample },
+    ];
+  }
+  function readyScore(p) {
+    var r = readiness(p);
+    var ok = r.filter(function (x) {
+      return x.ok;
+    }).length;
+    return { ok: ok, total: r.length, list: r };
+  }
+
+  /** 입력할 때마다 화면 전체를 다시 그리지 않고, 준비도·배지·목록만 고칩니다 */
+  function updateStatus() {
+    var p = state.products[state.selected];
+    if (!p || currentTab() !== "products") return;
+    var sc = readyScore(p);
+    var box = $("#ready-box");
+    if (box) {
+      box.innerHTML =
+        '<p class="aready__title">공개 준비 <strong>' + sc.ok + " / " + sc.total + "</strong>" +
+        (sc.ok === sc.total ? ' <span class="aready__done">공개할 준비가 됐습니다</span>' : "") + "</p>" +
+        '<div class="aready__bar"><span style-width="' + Math.round((sc.ok / sc.total) * 100) + '"></span></div>' +
+        '<ul class="aready__list">' +
+        sc.list
+          .map(function (x) {
+            return (
+              '<li class="' + (x.ok ? "is-ok" : "is-todo") + '"><button type="button" class="aready__item" data-goto="' + x.sec + '">' +
+              (x.ok ? "✓ " : "○ ") + esc(x.label) + "</button></li>"
+            );
+          })
+          .join("") +
+        "</ul>";
+      var bar = box.querySelector(".aready__bar span");
+      if (bar) bar.style.width = bar.getAttribute("style-width") + "%";
+    }
+    ["basic", "intro", "photos", "plan", "specs", "price"].forEach(function (sec) {
+      var b = document.querySelector('[data-badge="' + sec + '"]');
+      if (!b) return;
+      var items = sc.list.filter(function (x) {
+        return x.sec === sec;
+      });
+      var ok = items.filter(function (x) {
+        return x.ok;
+      }).length;
+      b.textContent = ok + " / " + items.length;
+      b.classList.toggle("is-done", ok === items.length);
+    });
+    renderList();
+  }
+
+  /* ───────── 사진 ───────── */
 
   /** 사진 파일을 가로·세로 최대 1800px JPG 로 줄여서 준비 */
   function prepareImage(file, slug, n) {
@@ -524,14 +648,52 @@
     });
   }
 
+  function addFiles(files, kind) {
+    var p = state.products[state.selected];
+    if (!p || !files.length) return;
+    setSaveMsg("사진을 준비하는 중입니다…");
+    var chain = Promise.resolve();
+    var failed = [];
+    var added = 0;
+    files.forEach(function (f, i) {
+      chain = chain.then(function () {
+        return prepareImage(f, p.slug, i + 1)
+          .then(function (r) {
+            added++;
+            if (kind === "plan") p.floorPlan = { src: r.src, alt: (p.name || "제품") + " 평면도", width: r.width, height: r.height };
+            else p.images.push({ src: r.src, alt: "", width: r.width, height: r.height, space: null, caption: null, optionsShown: [] });
+          })
+          .catch(function (err) {
+            failed.push(err.message);
+          });
+      });
+    });
+    chain.then(function () {
+      markDirty("products");
+      state.openSecs[kind === "plan" ? "plan" : "photos"] = true;
+      renderEditor();
+      if (failed.length) setSaveMsg("열지 못한 사진이 있습니다: " + failed.join(", ") + " (JPG·PNG로 바꿔 올려 주세요)", true);
+      else setSaveMsg("사진 " + added + "장을 추가했습니다. 각 사진의 공간을 고른 뒤 저장하세요.");
+    });
+  }
+
+  function dropZone(kind, label) {
+    return (
+      '<label class="adrop" data-drop="' + kind + '"><input type="file" accept="image/jpeg,image/png,image/webp"' + (kind === "plan" ? "" : " multiple") +
+      ' data-upload="' + kind + '"><span class="adrop__big">' + label + '</span><span class="adrop__small">눌러서 고르거나, 사진 파일을 여기로 끌어다 놓으세요. 큰 사진은 자동으로 줄입니다.</span></label>'
+    );
+  }
+
   function photosHtml(p) {
-    var optionNames = p.options.map(function (o) {
-      return o.name;
-    }).filter(Boolean);
-    var list = p.images
+    var optionNames = p.options
+      .map(function (o) {
+        return o.name;
+      })
+      .filter(Boolean);
+    var cards = p.images
       .map(function (img, i) {
         var opts = optionNames.length
-          ? '<div class="af"><span class="af__label">사진에 들어간 선택 옵션</span><div class="af-checks">' +
+          ? '<div class="af"><span class="af__label">사진에 들어간 선택 옵션</span><span class="af__help">기본 가격에 없는 것이 사진에 보이면 체크하세요.</span><div class="af-checks">' +
             optionNames
               .map(function (name) {
                 return fCheck(
@@ -549,61 +711,78 @@
               })
               .join("") +
             "</div></div>"
-          : '<p class="af__help">선택 옵션을 먼저 등록하면 사진에 들어간 옵션을 표시할 수 있습니다.</p>';
+          : "";
         return (
-          '<div class="aphoto"><div class="aphoto__img">' +
-          '<img src="' + esc(imgSrc(img.src)) + '" alt="" data-placeholder="사진 없음">' +
+          '<li class="aphoto2">' +
+          '<div class="aphoto2__img"><img src="' + esc(imgSrc(img.src)) + '" alt="" data-placeholder="사진 없음">' +
           (i === 0 ? '<span class="aphoto__badge">대표 사진</span>' : "") +
           (img.isDesignExample ? '<span class="aphoto__badge aphoto__badge--warn">디자인 예시</span>' : "") +
-          '</div><div class="aphoto__fields">' +
-          fText("공간", function () {
-            return img.space;
-          }, function (v) {
-            img.space = nn(v);
-          }, { placeholder: "외관, 거실, 주방, 침실, 욕실, 수납, 출입구 등" }) +
-          fArea("사진 설명", function () {
-            return img.caption;
-          }, function (v) {
-            img.caption = nn(v);
-          }, { rows: 2, placeholder: "예: 싱크대와 수납장을 한쪽 벽에 모아 동선이 짧습니다." }) +
-          fText("사진에 보이는 것 (화면을 볼 수 없는 분께 읽어 주는 글)", function () {
-            return img.alt;
-          }, function (v) {
-            img.alt = String(v).trim();
-          }, { placeholder: "예: 흰 외벽과 나무 데크가 있는 단층 이동식주택 정면" }) +
-          opts +
-          (img.isDesignExample ? fCheck("디자인 예시 사진 (실제 제품 사진이 아님)", function () {
-            return img.isDesignExample;
-          }, function (on) {
-            img.isDesignExample = on || undefined;
-          }) : "") +
-          '<div class="arow__tools">' +
-          (i > 0 ? btn("대표 사진으로", function () {
-            p.images.unshift(p.images.splice(i, 1)[0]);
-            changed(true);
-          }) : "") +
-          (i > 0 ? btn("앞으로", function () {
+          "</div>" +
+          '<div class="aphoto2__tools">' +
+          (i > 0 ? btn("◀ 앞으로", function () {
             var t = p.images[i - 1];
             p.images[i - 1] = p.images[i];
             p.images[i] = t;
             changed(true);
           }) : "") +
-          btn("사진 빼기", function () {
+          (i < p.images.length - 1 ? btn("뒤로 ▶", function () {
+            var t = p.images[i + 1];
+            p.images[i + 1] = p.images[i];
+            p.images[i] = t;
+            changed(true);
+          }) : "") +
+          (i > 0 ? btn("대표 사진으로", function () {
+            p.images.unshift(p.images.splice(i, 1)[0]);
+            changed(true);
+          }) : "") +
+          btn("빼기", function () {
             p.images.splice(i, 1);
             changed(true);
-          }) +
-          "</div></div></div>"
+          }, "btn--line btn--sm") +
+          "</div>" +
+          fText("공간", function () {
+            return img.space;
+          }, function (v) {
+            img.space = nn(v);
+          }, { list: "space-list", placeholder: "외관, 거실, 주방…", help: "갤러리 사진 밑에 보이는 이름" }) +
+          fArea("크게 볼 때 나오는 설명 (선택)", function () {
+            return img.caption;
+          }, function (v) {
+            img.caption = nn(v);
+          }, { rows: 2, placeholder: "예: 싱크대와 수납장을 한쪽 벽에 모아 동선이 짧습니다." }) +
+          opts +
+          (img.isDesignExample
+            ? fCheck("디자인 예시 사진 (실제 제품 사진이 아님)", function () {
+                return img.isDesignExample;
+              }, function (on) {
+                img.isDesignExample = on || undefined;
+              })
+            : "") +
+          "</li>"
         );
       })
       .join("");
     return (
-      (list || '<p class="text-soft">아직 사진이 없습니다.</p>') +
-      '<label class="btn btn--outline afile">사진 올리기 (여러 장 가능)<input type="file" accept="image/jpeg,image/png,image/webp" multiple data-upload="photos"></label>' +
-      '<p class="af__help mt-2">JPG·PNG 사진을 고르면 자동으로 알맞은 크기로 줄여서 올립니다. 아이폰 사진(HEIC)은 ‘가장 호환성 높은’ 형식으로 바꾼 뒤 올려 주세요.</p>'
+      (cards ? '<ul class="aphotos">' + cards + "</ul>" : '<p class="aempty">아직 사진이 없습니다.</p>') +
+      dropZone("photos", "+ 사진 올리기 (여러 장 가능)") +
+      '<p class="af__help mt-2">순서: 첫 사진이 대표 사진, 갤러리는 외관 → 거실 → 주방 → 침실 → 욕실 순으로 자동 정렬됩니다. 아이폰 사진(HEIC)은 ‘가장 호환성 높은’ 형식으로 바꿔 올려 주세요.</p>'
     );
   }
 
-  function sizeField(label, key, p, placeholder, basisPh) {
+  /* ───────── 칸 묶음 ───────── */
+
+  function section(id, title, desc, inner, badge) {
+    var open = state.openSecs[id];
+    return (
+      '<details class="asec" id="sec-' + id + '" data-sec="' + id + '"' + (open ? " open" : "") + ">" +
+      '<summary class="asec__head"><span class="asec__title">' + title + "</span>" +
+      (badge ? '<span class="asec__badge" data-badge="' + id + '"></span>' : '<span class="asec__badge asec__badge--opt">선택</span>') +
+      "</summary>" +
+      '<div class="asec__body">' + (desc ? '<p class="asec__desc">' + desc + "</p>" : "") + inner + "</div></details>"
+    );
+  }
+
+  function sizeRow(label, key, p, ph, basisPh, showPy) {
     var s = p.size;
     function get(k) {
       return s[key] ? s[key][k] : null;
@@ -614,13 +793,13 @@
       s[key] = cur.value || cur.basis ? cur : null;
     }
     return (
-      '<div class="af-pair">' +
+      '<div class="asize">' +
       fText(label, function () {
         return get("value");
       }, function (v) {
         set("value", v);
-      }, { placeholder: placeholder }) +
-      fText("기준", function () {
+      }, { placeholder: ph, pyeong: showPy, after: showPy ? '<span class="af__py" data-py>' + esc(pyeong(get("value"))) + "</span>" : "" }) +
+      fText("어떤 기준으로 잰 값인가요", function () {
         return get("basis");
       }, function (v) {
         set("basis", v);
@@ -633,284 +812,285 @@
     binds = [];
     acts = [];
     var saved = !!state.savedSlugs[p.slug];
-    var catChoices = state.categories.map(function (c) {
-      return [c.id, c.fullLabel];
-    });
+    var cat = catOf(p);
 
+    /* 1. 기본 정보 */
     var basic =
-      fSelect("제품군", catChoices, function () {
+      '<div class="agrid">' +
+      fSelect("제품군", state.categories.map(function (c) {
+        return [c.id, c.fullLabel];
+      }), function () {
         return p.category;
       }, function (v) {
         p.category = v;
         if (!saved && /^[a-z-]+-\d+$/.test(p.slug)) p.slug = newSlug(v);
-      }, { refresh: true, rerender: !saved }) +
+      }, { rerender: true }) +
       fText("제품 이름", function () {
         return p.name;
       }, function (v) {
         p.name = String(v).trim();
-      }, { required: true, refresh: true, help: "정식 모델명이 없으면 구성으로 적습니다. 예: 방 1개와 거실형", placeholder: "예: 방 2개형" }) +
-      fText("주소 이름 (영문)", function () {
-        return p.slug;
-      }, function (v) {
-        p.slug = String(v).trim().toLowerCase();
-      }, {
-        disabled: saved,
-        help: saved ? "이미 저장된 제품이라 바꿀 수 없습니다." : "영문 소문자·숫자·하이픈만. 페이지 주소가 됩니다: products/" + esc(p.slug) + ".html",
-      }) +
-      fSelect("판매 여부", [[null, "확인 전"], ["on-sale", "판매 중"], ["discontinued", "판매 종료"]], function () {
+      }, { required: true, placeholder: "예: 방 2개형", help: "모델명이 없으면 구성으로 적습니다." }) +
+      fRadio("판매 여부", [[null, "확인 전"], ["on-sale", "판매 중"], ["discontinued", "판매 종료"]], function () {
         return p.availability;
       }, function (v) {
         p.availability = v;
       }) +
-      fText("카드 한 줄 설명", function () {
-        return p.summary;
-      }, function (v) {
-        p.summary = nn(v);
-      }, { help: "제품 목록 카드에 보이는 짧은 설명", placeholder: "예: 침실과 거실을 나눈 구성" }) +
-      fArea("한 문장 소개 (큰 글씨)", function () {
-        return p.tagline;
-      }, function (v) {
-        p.tagline = nn(v);
-      }, { rows: 2, help: "대표 사진 아래 큰 글씨. 어떤 생활에 어울리는 집인지 한 문장으로. 예: 텃밭을 돌보고, 편히 쉬어 가는 작은 공간." }) +
-      fArea("짧은 소개 (2~3문장)", function () {
-        return p.shortDescription;
-      }, function (v) {
-        p.shortDescription = nn(v);
-      }, { rows: 3, help: "약 80~140자. 누가 어떤 상황에 쓰기 좋은지, 공간 구성의 장점 한두 가지." }) +
       fText("공간 구성 요약", function () {
         return p.layoutSummary;
       }, function (v) {
         p.layoutSummary = nn(v);
-      }, { placeholder: "예: 방 1 · 거실 · 주방 · 욕실" }) +
-      fCheck("개발용 예시 데이터 (실제 제품으로 채운 뒤 체크를 해제하세요)", function () {
+      }, { placeholder: "예: 방 1 · 거실 · 주방 · 욕실", help: "소개의 ‘구성’ 칸에 보입니다." }) +
+      fText("제품 목록 카드의 한 줄 (선택)", function () {
+        return p.summary;
+      }, function (v) {
+        p.summary = nn(v);
+      }, { placeholder: "예: 침실과 거실을 나눈 구성" }) +
+      fText("주소 이름 (영문)", function () {
+        return p.slug;
+      }, function (v) {
+        p.slug = String(v).trim().toLowerCase();
+      }, { disabled: saved, help: saved ? "저장된 제품이라 바꿀 수 없습니다." : "영문 소문자·숫자·하이픈. 저장 후에는 바꿀 수 없습니다." }) +
+      "</div>" +
+      fCheck("개발용 예시 데이터 — 실제 내용으로 채운 뒤 체크를 해제하세요", function () {
         return p.isExample;
       }, function (on) {
         p.isExample = on;
       });
 
-    var ls = p.lifestyle;
-    var life =
-      fLines("이렇게 쓰시기 좋습니다", function () {
-        return ls.fitsFor;
-      }, function (a) {
-        ls.fitsFor = a;
-      }, { placeholder: "주말마다 머무는 세컨하우스\n텃밭 가까이에서 지내는 공간" }) +
-      '<div class="af"><span class="af__label">공간을 이렇게 나눴습니다</span><span class="af__help">공간 구성과, 그래서 생활이 어떻게 편한지를 짝지어 적습니다.</span>' +
-      rows(ls.layoutPoints, function (lp) {
-        return (
-          fText("공간 구성", function () {
-            return lp.layout;
-          }, function (v) {
-            lp.layout = String(v).trim();
-          }, { placeholder: "예: 현관 바로 옆에 주방" }) +
-          fText("생활상의 장점", function () {
-            return lp.benefit;
-          }, function (v) {
-            lp.benefit = String(v).trim();
-          }, { placeholder: "예: 장 본 짐을 바로 정리할 수 있습니다." })
-        );
-      }, function () {
-        return { layout: "", benefit: "" };
-      }, "구성 추가") +
-      "</div>" +
-      fArea("다른 평면이 더 맞을 수 있는 경우", function () {
-        return ls.otherPlanHint;
+    /* 2. 소개 문구 */
+    var intro =
+      fArea("한 문장 소개 (큰 글씨)", function () {
+        return p.tagline;
       }, function (v) {
-        ls.otherPlanHint = nn(v);
-      }, { rows: 2 }) +
-      fLines("일반 설명 문단", function () {
-        return ls.intro;
-      }, function (a) {
-        ls.intro = a;
-      }, { help: "위 칸이 비어 있을 때 대신 보이는 설명입니다." });
+        p.tagline = nn(v);
+      }, { rows: 2, required: true, count: [10, 40], placeholder: "예: 텃밭을 돌보고, 편히 쉬어 가는 작은 공간.", help: "어떤 생활에 어울리는 집인지 한 문장으로." }) +
+      fArea("짧은 소개 (2~3문장)", function () {
+        return p.shortDescription;
+      }, function (v) {
+        p.shortDescription = nn(v);
+      }, { rows: 4, required: true, count: [80, 140], help: "누가 어떤 상황에 쓰기 좋은지 + 공간 구성의 장점 한두 가지. 농막은 숙박·주거 용도로 쓰지 마세요." });
 
+    /* 4. 평면과 크기 */
     var plan =
       '<div class="af"><span class="af__label">평면도</span>' +
       (p.floorPlan
-        ? '<div class="aphoto__img aphoto__img--plan"><img src="' + esc(imgSrc(p.floorPlan.src)) + '" alt="" data-placeholder="평면도 없음"></div>' +
-          '<div class="arow__tools">' + btn("평면도 빼기", function () {
+        ? '<div class="aphoto2__img aphoto2__img--plan"><img src="' + esc(imgSrc(p.floorPlan.src)) + '" alt="" data-placeholder="평면도 없음"></div>' +
+          '<div class="aphoto2__tools">' + btn("평면도 빼기", function () {
             p.floorPlan = null;
             changed(true);
-          }) + "</div>"
-        : '<p class="text-soft">평면도가 없습니다. 실제 도면만 올려 주세요.</p>') +
-      '<label class="btn btn--outline afile mt-2">' + (p.floorPlan ? "평면도 바꾸기" : "평면도 올리기") +
-      '<input type="file" accept="image/jpeg,image/png,image/webp" data-upload="plan"></label></div>' +
-      sizeField("외형 크기", "exterior", p, "예: 가로 9m × 세로 3.6m × 높이 3.4m", "예: 외벽 바깥, 지붕 포함") +
-      sizeField("실내 사용 면적", "interior", p, "예: 약 30㎡", "예: 벽 안쪽 바닥 면적") +
-      sizeField("다락 (없으면 비움)", "loft", p, "", "예: 실내 면적에 포함하지 않음") +
-      sizeField("데크 (없으면 비움)", "deck", p, "", "예: 선택 옵션, 실내 면적에 포함하지 않음") +
-      '<div class="af"><span class="af__label">공간별 구성</span>' +
-      rows(p.rooms, function (r) {
-        return (
-          fText("공간", function () {
+          }, "btn--line btn--sm") + "</div>"
+        : "") +
+      dropZone("plan", p.floorPlan ? "평면도 바꾸기" : "+ 평면도 올리기") +
+      '<span class="af__help">실제 도면만 올려 주세요. 없으면 사이트에 ‘준비 중’ 한 줄만 보입니다.</span></div>' +
+      sizeRow("외형 크기", "exterior", p, "예: 가로 9m × 세로 3.6m × 높이 3.4m", "예: 외벽 바깥, 지붕 포함") +
+      sizeRow("실내 면적", "interior", p, "예: 약 30㎡", "예: 벽 안쪽 바닥 면적", true) +
+      sizeRow("다락 (없으면 비움)", "loft", p, "예: 약 8㎡", "예: 실내 면적에 포함하지 않음", true) +
+      sizeRow("데크 (없으면 비움)", "deck", p, "예: 약 10㎡", "예: 선택 옵션, 실내 면적에 포함하지 않음", true) +
+      fText("공간 목록 (선택)", function () {
+        return p.rooms
+          .map(function (r) {
             return r.name;
-          }, function (v) {
-            r.name = String(v).trim();
-          }) +
-          fText("설명", function () {
-            return r.note;
-          }, function (v) {
-            r.note = nn(v);
           })
-        );
-      }, function () {
-        return { name: "", note: null };
-      }, "공간 추가") +
-      "</div>";
+          .join(", ");
+      }, function (v) {
+        p.rooms = String(v)
+          .split(/[,·]/)
+          .map(function (s) {
+            return s.trim();
+          })
+          .filter(Boolean)
+          .map(function (name) {
+            return { name: name, note: null };
+          });
+      }, { placeholder: "예: 거실, 주방, 침실, 욕실", help: "쉼표로 나눠 적습니다." });
 
+    /* 5. 기본 사양 */
     var specs = p.specGroups
       .map(function (g, gi) {
         return (
-          '<div class="agroup">' +
-          '<div class="agroup__head">' +
-          fText("묶음 이름", function () {
+          '<div class="aspec">' +
+          '<div class="aspec__head"><input type="text" class="aspec__name" data-b="' + bind(function () {
             return g.group;
           }, function (v) {
             g.group = String(v).trim();
-          }) +
+          }) + '" value="' + esc(g.group) + '" aria-label="사양 묶음 이름">' +
           btn("묶음 삭제", function () {
             p.specGroups.splice(gi, 1);
             changed(true);
-          }) +
+          }, "btn--line btn--sm") + "</div>" +
+          '<div class="aspec__rows">' +
+          (g.items || [])
+            .map(function (it, ii) {
+              return (
+                '<div class="aspec__row">' +
+                fText("항목", function () {
+                  return it.label;
+                }, function (v) {
+                  it.label = String(v).trim();
+                }, { cls: "af--s" }) +
+                fText("기본으로 들어가는 것", function () {
+                  return it.value;
+                }, function (v) {
+                  it.value = nn(v);
+                }, { cls: "af--l", placeholder: "비워 두면 사이트에 안 보임" }) +
+                fText("쉬운 풀이 (선택)", function () {
+                  return it.hint;
+                }, function (v) {
+                  it.hint = nn(v) || undefined;
+                }, { cls: "af--m" }) +
+                btn("✕", function () {
+                  g.items.splice(ii, 1);
+                  changed(true);
+                }, "btn--line btn--sm aspec__del", ' aria-label="이 항목 삭제"') +
+                "</div>"
+              );
+            })
+            .join("") +
           "</div>" +
-          rows(g.items, function (it) {
-            return (
-              fText("항목", function () {
-                return it.label;
-              }, function (v) {
-                it.label = String(v).trim();
-              }) +
-              fText("기본 제공 내용", function () {
-                return it.value;
-              }, function (v) {
-                it.value = nn(v);
-              }, { placeholder: "비워 두면 ‘상담 시 안내’" }) +
-              fText("용어 풀이 (선택)", function () {
-                return it.hint;
-              }, function (v) {
-                it.hint = nn(v) || undefined;
-              })
-            );
-          }, function () {
-            return { label: "", value: null };
-          }, "항목 추가") +
+          btn("+ 항목 추가", function () {
+            g.items.push({ label: "", value: null });
+            changed(true);
+          }) +
           "</div>"
         );
       })
       .join("") +
       btn("+ 사양 묶음 추가", function () {
-        p.specGroups.push({ group: "", items: [{ label: "", value: null }] });
+        p.specGroups.push({ group: "새 묶음", items: [{ label: "", value: null }] });
         changed(true);
       });
 
+    /* 6. 선택 옵션 */
     var options =
-      rows(p.options, function (o) {
-        o.cost = o.cost || { type: null, amount: null };
-        return (
-          fText("옵션 이름", function () {
-            return o.name;
-          }, function (v) {
-            o.name = String(v).trim();
-          }, { placeholder: "예: 데크", help: "사진에 이 옵션을 표시하려면 이름을 적은 뒤 사진 칸에서 체크하세요.", rerenderOnChange: true }) +
-          fText("선택 범위", function () {
-            return o.range;
-          }, function (v) {
-            o.range = nn(v);
-          }) +
-          fText("기본과의 차이", function () {
-            return o.vsBase;
-          }, function (v) {
-            o.vsBase = nn(v);
-          }) +
-          fSelect("비용", [[null, "확인 전 (상담 시 안내)"], ["extra", "추가금"], ["quote", "별도 견적"]], function () {
-            return o.cost.type;
-          }, function (v) {
-            o.cost.type = v;
-          }) +
-          fText("추가금 (원, 숫자만)", function () {
-            return o.cost.amount;
-          }, function (v) {
-            var n = String(v).replace(/[^0-9]/g, "");
-            o.cost.amount = n ? Number(n) : null;
-          }, { inputmode: "numeric", placeholder: "추가금일 때만" }) +
-          fSelect("제작기간 영향", [[null, "확인 전"], ["affects", "늘어날 수 있음"], ["none", "영향 없음"]], function () {
-            return o.schedule;
-          }, function (v) {
-            o.schedule = v;
-          })
-        );
-      }, function () {
-        return { name: "", range: null, vsBase: null, cost: { type: null, amount: null }, schedule: null };
-      }, "옵션 추가");
+      (p.options.length
+        ? '<ul class="aopts">' +
+          p.options
+            .map(function (o, i) {
+              return (
+                '<li class="aopt">' +
+                '<div class="agrid">' +
+                fText("옵션 이름", function () {
+                  return o.name;
+                }, function (v) {
+                  o.name = String(v).trim();
+                }, { placeholder: "예: 데크", rerenderOnChange: true }) +
+                fText("선택할 수 있는 범위", function () {
+                  return o.range;
+                }, function (v) {
+                  o.range = nn(v);
+                }, { placeholder: "예: 현관 앞 크기 협의" }) +
+                "</div>" +
+                fRadio("비용", [[null, "상담 시 안내"], ["extra", "정해진 추가금"], ["quote", "별도 견적"]], function () {
+                  return o.cost.type;
+                }, function (v) {
+                  o.cost.type = v;
+                }, { rerender: true }) +
+                (o.cost.type === "extra"
+                  ? fText("추가금 (숫자만)", function () {
+                      return o.cost.amount;
+                    }, function (v) {
+                      o.cost.amount = num(v);
+                    }, { inputmode: "numeric", placeholder: "예: 1500000", after: '<span class="af__py" data-won>' + esc(won(o.cost.amount)) + "</span>" })
+                  : "") +
+                fRadio("제작 기간에 영향", [[null, "모름"], ["affects", "늘어날 수 있음"], ["none", "영향 없음"]], function () {
+                  return o.schedule;
+                }, function (v) {
+                  o.schedule = v;
+                }) +
+                '<div class="aphoto2__tools">' +
+                (i > 0 ? btn("위로", function () {
+                  var t = p.options[i - 1];
+                  p.options[i - 1] = p.options[i];
+                  p.options[i] = t;
+                  changed(true);
+                }) : "") +
+                btn("옵션 삭제", function () {
+                  p.options.splice(i, 1);
+                  changed(true);
+                }, "btn--line btn--sm") +
+                "</div></li>"
+              );
+            })
+            .join("") +
+          "</ul>"
+        : '<p class="aempty">등록된 옵션이 없습니다. 없으면 사이트에 ‘상담 시 안내’로 보입니다.</p>') +
+      btn("+ 옵션 추가", function () {
+        p.options.push({ name: "", range: null, vsBase: null, cost: { type: null, amount: null }, schedule: null });
+        changed(true);
+      });
 
-    var cz = p.customization;
-    var custom =
-      fLines("기본으로 제공하는 구성", function () {
-        return cz.base;
-      }, function (a) {
-        cz.base = a;
-      }) +
-      fLines("비용·기간 검토가 필요한 개별 변경", function () {
-        return cz.custom;
-      }, function (a) {
-        cz.custom = a;
-      }, { placeholder: "방 개수·벽 위치처럼 구조와 배치를 바꾸는 요청" });
-
+    /* 7. 가격·제작·설치 */
     var pr = p.price;
     var price =
-      fSelect("가격 표시", [["consult", "가격 상담"], ["fixed", "정해진 가격"], ["from", "~원부터"]], function () {
+      fRadio("가격 표시", [["consult", "가격 상담"], ["fixed", "정해진 가격"], ["from", "~원부터"]], function () {
         return pr.kind;
       }, function (v) {
         pr.kind = v;
-      }) +
-      fText("금액 (원, 숫자만)", function () {
-        return pr.amount;
-      }, function (v) {
-        var n = String(v).replace(/[^0-9]/g, "");
-        pr.amount = n ? Number(n) : null;
-      }, { inputmode: "numeric", help: "‘가격 상담’이면 비워 둡니다.", placeholder: "예: 32000000" }) +
-      fSelect("부가세", [[null, "확인 전 (상담 시 안내)"], ["included", "부가세 포함"], ["excluded", "부가세 별도"]], function () {
-        return pr.vat;
-      }, function (v) {
-        pr.vat = v;
-      }) +
-      fText("가격 기준 사양", function () {
-        return pr.appliesTo;
-      }, function (v) {
-        pr.appliesTo = nn(v);
-      }, { placeholder: "예: 기본 사양 기준, 선택 옵션 제외" }) +
-      '<div class="af"><span class="af__label">가격에 포함되는 범위</span><span class="af__help">모르면 ‘확인 전’으로 두세요. 화면에 ‘상담 시 안내’로 보입니다.</span>' +
-      rows(p.costScope, function (s) {
-        return (
-          fText("항목", function () {
-            return s.item;
+      }, { rerender: true }) +
+      (pr.kind !== "consult"
+        ? '<div class="agrid">' +
+          fText("금액 (숫자만)", function () {
+            return pr.amount;
           }, function (v) {
-            s.item = String(v).trim();
-          }) +
-          fSelect("포함 여부", [[null, "확인 전"], ["included", "제품 가격에 포함"], ["excluded", "별도"]], function () {
-            return s.status;
+            pr.amount = num(v);
+          }, { inputmode: "numeric", placeholder: "예: 32000000", after: '<span class="af__py" data-won>' + esc(won(pr.amount)) + "</span>" }) +
+          fText("어떤 사양 기준 가격인가요", function () {
+            return pr.appliesTo;
           }, function (v) {
-            s.status = v;
+            pr.appliesTo = nn(v);
+          }, { placeholder: "예: 기본 사양 기준, 선택 옵션 제외" }) +
+          "</div>" +
+          fRadio("부가세", [[null, "모름"], ["included", "포함"], ["excluded", "별도"]], function () {
+            return pr.vat;
+          }, function (v) {
+            pr.vat = v;
           })
-        );
-      }, function () {
-        return { item: "", status: null };
-      }, "항목 추가") +
+        : "") +
+      '<div class="af"><span class="af__label">제품 가격에 들어가나요?</span><span class="af__help">모르면 ‘현장 확인’으로 두세요. 사이트에 ‘현장 확인 후 안내’로 보입니다.</span>' +
+      '<div class="ascope">' +
+      p.costScope
+        .map(function (s, i) {
+          return (
+            '<div class="ascope__row">' +
+            fText("항목", function () {
+              return s.item;
+            }, function (v) {
+              s.item = String(v).trim();
+            }, { cls: "af--s" }) +
+            fRadio("포함 여부", [["included", "포함"], ["excluded", "별도"], [null, "현장 확인"]], function () {
+              return s.status;
+            }, function (v) {
+              s.status = v;
+            }) +
+            btn("✕", function () {
+              p.costScope.splice(i, 1);
+              changed(true);
+            }, "btn--line btn--sm", ' aria-label="이 항목 삭제"') +
+            "</div>"
+          );
+        })
+        .join("") +
       "</div>" +
-      fArea("제작 기간 안내", function () {
+      btn("+ 항목 추가", function () {
+        p.costScope.push({ item: "", status: null });
+        changed(true);
+      }) +
+      "</div>" +
+      fArea("제작 기간 (확인된 것만, 선택)", function () {
         return p.schedule.productionNote;
       }, function (v) {
         p.schedule.productionNote = nn(v);
-      }, { rows: 2, help: "회사에서 확인한 내용만. ‘빠르면 2주’ 같은 문구는 조건과 함께 적습니다." }) +
-      fArea("설치 현장 안내", function () {
+      }, { rows: 2, placeholder: "예: 보통 4~6주. 자재 상황에 따라 달라집니다.", help: "‘빠르면 2주’ 같은 문구는 조건과 함께 적어 주세요." }) +
+      fArea("설치 현장 안내 (선택)", function () {
         return p.schedule.siteNote;
       }, function (v) {
         p.schedule.siteNote = nn(v);
-      }, { rows: 2 });
+      }, { rows: 2, placeholder: "예: 크레인 진입이 가능한 도로 폭이 필요합니다." });
 
+    /* 8. 시공 사례 */
     var caseChecks = (GD.cases || [])
       .map(function (c) {
-        return fCheck(esc(c.title), function () {
+        return fCheck(esc(c.title) + (c.isExample ? ' <span class="text-soft">(예시 — 사이트에 안 보임)</span>' : ""), function () {
           return p.relatedCaseSlugs.indexOf(c.slug) >= 0;
         }, function (on) {
           p.relatedCaseSlugs = p.relatedCaseSlugs.filter(function (s) {
@@ -920,6 +1100,45 @@
         });
       })
       .join("");
+
+    /* 9. 보관용 (사이트에 지금은 안 보임) */
+    var ls = p.lifestyle;
+    var archive =
+      fLines("이렇게 쓰시기 좋습니다", function () {
+        return ls.fitsFor;
+      }, function (a) {
+        ls.fitsFor = a;
+      }) +
+      fArea("다른 평면이 더 맞는 경우", function () {
+        return ls.otherPlanHint;
+      }, function (v) {
+        ls.otherPlanHint = nn(v);
+      }, { rows: 2 }) +
+      fLines("예전 설명 문단 (짧은 소개가 비었을 때 대신 보임)", function () {
+        return ls.intro;
+      }, function (a) {
+        ls.intro = a;
+      });
+
+    var head =
+      '<div class="aedit-head">' +
+      '<div><p class="aedit-head__cat">' + esc(cat.fullLabel) + (saved ? "" : ' <span class="tag-dev">아직 저장 안 됨</span>') + (p.isExample ? ' <span class="tag-dev">예시 데이터</span>' : "") + "</p>" +
+      '<h2 class="aedit-head__name">' + esc(p.name || "새 제품") + "</h2></div>" +
+      '<div class="aedit-head__actions">' +
+      '<button type="button" class="btn btn--outline btn--sm" data-act-global="preview">미리보기</button>' +
+      (saved ? '<a class="btn btn--outline btn--sm" href="products/' + esc(p.slug) + '.html" target="_blank" rel="noopener">사이트에서 보기</a>' : "") +
+      btn("복제", function () {
+        var c = clone(p);
+        c.slug = newSlug(c.category);
+        c.name = (p.name || "제품") + " (복사본)";
+        state.products.splice(state.selected + 1, 0, c);
+        state.selected++;
+        markDirty("products");
+        renderAll();
+        setSaveMsg("복사본을 만들었습니다. 이름과 내용을 고친 뒤 저장하세요.");
+      }) +
+      "</div></div>" +
+      '<div class="aready" id="ready-box"></div>';
 
     var del = state.confirmDelete
       ? '<div class="adanger"><p><strong>‘' + esc(p.name || "이름 없는 제품") + "’을 삭제할까요?</strong> 저장해야 사이트에서 사라집니다.</p>" +
@@ -941,18 +1160,17 @@
         }, "btn--line btn--sm");
 
     return (
-      '<div class="aeditor__head"><h2 class="h-sub">' + esc(p.name || "새 제품") + '</h2><p class="text-soft">' +
-      esc(CAT_HINT[p.category] || p.category) + " · products/" + esc(p.slug) + ".html" + (saved ? "" : ' <span class="tag-dev">저장 전</span>') + "</p></div>" +
-      fieldset("기본 정보", basic) +
-      fieldset("사진", photosHtml(p), "첫 번째 사진이 대표 사진입니다. 실제 제품 사진만 올려 주세요.") +
-      fieldset("생활 설명 (보관용)", life, "지금 상세 화면에는 위의 ‘짧은 소개’만 보입니다. 이 칸은 나중을 위해 보관합니다.") +
-      fieldset("평면과 크기", plan, "외형 크기, 실내 면적, 다락·데크는 서로 합치지 말고 따로 적고, 기준을 함께 적어 주세요.") +
-      fieldset("기본 사양", specs, "비워 둔 칸은 화면에 ‘상담 시 안내’로 보입니다. 재료 이름만으로 성능을 보장하는 표현은 쓰지 마세요.") +
-      fieldset("선택 옵션", options, "회사에서 승인한 옵션만 적습니다.") +
-      fieldset("바꿀 수 있는 부분", custom) +
-      fieldset("가격과 일정", price) +
-      fieldset("관련 시공 사례", caseChecks || '<p class="text-soft">등록된 사례가 없습니다.</p>') +
-      '<div class="aeditor__foot">' + del + "</div>"
+      head +
+      section("basic", "1. 기본 정보", null, basic, true) +
+      section("intro", "2. 소개 문구", "대표 사진 바로 아래 보이는 글입니다. 짧을수록 잘 읽힙니다.", intro, true) +
+      section("photos", "3. 사진", "첫 사진이 대표 사진입니다. 실제 제품 사진만 올려 주세요.", photosHtml(p), true) +
+      section("plan", "4. 평면과 크기", "외형·실내·다락·데크는 서로 합치지 말고 따로 적어 주세요. ㎡로 적으면 평은 자동으로 계산됩니다.", plan, true) +
+      section("specs", "5. 기본 사양", "기본 가격에 들어가는 것만 적습니다. 비운 칸은 사이트에 보이지 않습니다. ‘단열 우수’ 같은 성능 표현은 근거가 있을 때만.", specs, true) +
+      section("options", "6. 선택 옵션", "회사에서 정한 옵션만 적습니다.", options, false) +
+      section("price", "7. 가격·제작·설치", null, price, true) +
+      section("cases", "8. 관련 시공 사례", "실제 사례만 사이트에 보입니다.", caseChecks || '<p class="aempty">등록된 사례가 없습니다.</p>', false) +
+      section("archive", "보관용 메모 (사이트에 지금은 안 보임)", "예전 상세 화면에서 쓰던 칸입니다. 지우지 않고 보관합니다.", archive, false) +
+      '<div class="aedit-foot">' + del + "</div>"
     );
   }
 
@@ -962,47 +1180,43 @@
     binds = [];
     acts = [];
     return (
-      '<h2 class="h-sub">제품군 설명</h2><p class="text-soft mt-2">제품 안내 페이지의 분류 카드와, 메뉴에서 제품군을 눌렀을 때 맨 위에 보이는 설명입니다.</p>' +
+      '<h2 class="h-sub">제품군 설명</h2><p class="text-soft mt-2">제품 안내 페이지의 분류 카드와, 메뉴에서 제품군을 눌렀을 때 맨 위에 보이는 글입니다.</p>' +
       state.categories
         .map(function (c) {
-          return fieldset(
-            esc(c.fullLabel) + ' <span class="text-soft">(' + esc(c.id) + ")</span>",
-            '<div class="af-pair">' +
-              fText("메뉴 이름 (짧게)", function () {
-                return c.label;
-              }, function (v) {
-                c.label = String(v).trim();
-              }) +
-              fText("제목 이름", function () {
-                return c.fullLabel;
-              }, function (v) {
-                c.fullLabel = String(v).trim();
-              }) +
-              "</div>" +
-              fText("규모", function () {
-                return c.size;
-              }, function (v) {
-                c.size = nn(v);
-              }, { placeholder: "예: 20㎡(약 6평) 이하" }) +
-              fText("소개 한 줄", function () {
-                return c.headline;
-              }, function (v) {
-                c.headline = nn(v);
-              }) +
-              fArea("설명", function () {
-                return c.description;
-              }, function (v) {
-                c.description = String(v).trim();
-              }, { rows: 4 }) +
-              fArea("작은 글씨 참고 안내 (선택)", function () {
-                return c.note;
-              }, function (v) {
-                c.note = nn(v);
-              }, { rows: 2 })
+          return (
+            '<div class="acat"><h3 class="acat__title">' + esc(c.fullLabel) + "</h3>" +
+            '<div class="agrid">' +
+            fText("제목 이름", function () {
+              return c.fullLabel;
+            }, function (v) {
+              c.fullLabel = String(v).trim();
+            }) +
+            fText("규모", function () {
+              return c.size;
+            }, function (v) {
+              c.size = nn(v);
+            }, { placeholder: "예: 20㎡(약 6평) 이하" }) +
+            "</div>" +
+            fText("소개 한 줄 (굵은 글씨)", function () {
+              return c.headline;
+            }, function (v) {
+              c.headline = nn(v);
+            }) +
+            fArea("설명", function () {
+              return c.description;
+            }, function (v) {
+              c.description = String(v).trim();
+            }, { rows: 3 }) +
+            fArea("작은 글씨 참고 안내 (선택)", function () {
+              return c.note;
+            }, function (v) {
+              c.note = nn(v);
+            }, { rows: 2 }) +
+            "</div>"
           );
         })
         .join("") +
-      '<p class="af__help mt-4">메뉴 이름을 바꿔도 상단 메뉴 글자는 data/site.js 에 따로 있어 바뀌지 않습니다. 필요하면 요청해 주세요.</p>'
+      '<p class="af__help mt-4">상단 메뉴의 짧은 이름(예: 체류형 쉼터)은 별도 파일에 있어 여기서 바뀌지 않습니다. 바꿔야 하면 요청해 주세요.</p>'
     );
   }
 
@@ -1010,20 +1224,29 @@
 
   function renderList() {
     var ul = $("#product-list");
+    if (!ul) return;
+    var q = ($("#list-search") ? $("#list-search").value : "").trim();
+    var f = $("#list-filter") ? $("#list-filter").value : "";
+    var shown = 0;
     ul.innerHTML = state.products
       .map(function (p, i) {
-        var cat = state.categories.filter(function (c) {
-          return c.id === p.category;
-        })[0];
+        if (f && p.category !== f) return "";
+        if (q && (p.name || "").indexOf(q) < 0) return "";
+        shown++;
+        var sc = readyScore(p);
+        var thumb = p.images[0] ? '<img src="' + esc(imgSrc(p.images[0].src)) + '" alt="">' : "";
         return (
-          '<li><button type="button" class="admin-list__item' + (i === state.selected ? " is-on" : "") + '" data-pick="' + i + '"' +
-          (i === state.selected ? ' aria-current="true"' : "") + ">" +
-          '<span class="admin-list__name">' + esc(p.name || "새 제품 (이름 없음)") + "</span>" +
-          '<span class="admin-list__meta">' + esc(cat ? cat.fullLabel : p.category) + (p.isExample ? " · 예시" : "") +
-          (state.savedSlugs[p.slug] ? "" : " · 저장 전") + "</span></button></li>"
+          '<li><button type="button" class="alist' + (i === state.selected ? " is-on" : "") + '" data-pick="' + i + '"' + (i === state.selected ? ' aria-current="true"' : "") + ">" +
+          '<span class="alist__thumb">' + thumb + "</span>" +
+          '<span class="alist__text"><span class="alist__name">' + esc(p.name || "새 제품 (이름 없음)") + "</span>" +
+          '<span class="alist__meta">' + esc(catOf(p).fullLabel) + " · 준비 " + sc.ok + "/" + sc.total +
+          (p.isExample ? " · 예시" : "") + (state.savedSlugs[p.slug] ? "" : " · 저장 전") + "</span></span></button></li>"
         );
       })
       .join("");
+    if (!shown) ul.innerHTML = '<li class="aempty">조건에 맞는 제품이 없습니다.</li>';
+    var cnt = $("#list-count");
+    if (cnt) cnt.textContent = "제품 " + state.products.length + "개";
   }
   function renderEditor() {
     var box = $("#editor");
@@ -1037,6 +1260,7 @@
     box.innerHTML = editorHtml(p);
     GD.checkBrokenImages(box);
     window.scrollTo(0, y);
+    updateStatus();
   }
   function renderCategories() {
     $("#category-editor").innerHTML = categoriesHtml();
@@ -1045,7 +1269,18 @@
     var on = document.querySelector(".admin-tabs__btn.is-on");
     return on ? on.getAttribute("data-tab") : "products";
   }
+  function renderFilter() {
+    var sel = $("#list-filter");
+    if (!sel || sel.options.length > 1) return;
+    state.categories.forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = c.fullLabel;
+      sel.appendChild(o);
+    });
+  }
   function renderAll() {
+    renderFilter();
     if (currentTab() === "products") {
       renderList();
       renderEditor();
@@ -1073,7 +1308,30 @@
   function updateSaveBar() {
     var dirty = state.dirtyProducts || state.dirtyCategories;
     $("#save-btn").disabled = !dirty || state.saving;
-    if (!state.saving) setSaveMsg(dirty ? "저장하지 않은 변경이 있습니다." : "변경 사항이 없습니다.");
+    $("#revert-btn").disabled = !dirty || state.saving;
+    if (!state.saving) setSaveMsg(dirty ? "저장하지 않은 변경이 있습니다." : "변경 사항이 없습니다. (저장: Ctrl+S)");
+  }
+
+  /** 마지막으로 불러오거나 저장한 상태로 되돌리기 */
+  function takeSnapshot() {
+    state.snapshot = { products: clone(state.products), categories: clone(state.categories) };
+  }
+  function revert() {
+    if (!state.snapshot) return;
+    if (!state.confirmRevert) {
+      state.confirmRevert = true;
+      setSaveMsg("저장하지 않은 변경을 모두 버립니다. 정말 되돌리려면 ‘변경 취소’를 한 번 더 누르세요.", true);
+      return;
+    }
+    state.confirmRevert = false;
+    state.products = clone(state.snapshot.products);
+    state.categories = clone(state.snapshot.categories);
+    state.pending = {};
+    state.dirtyProducts = false;
+    state.dirtyCategories = false;
+    state.selected = Math.min(state.selected, Math.max(0, state.products.length - 1));
+    renderAll();
+    setSaveMsg("저장하지 않은 변경을 취소했습니다.");
   }
 
   /* ───────── 저장 ───────── */
@@ -1083,19 +1341,17 @@
     for (var i = 0; i < state.products.length; i++) {
       var p = state.products[i];
       var label = p.name || i + 1 + "번째 제품";
-      if (!p.name) return { i: i, msg: i + 1 + "번째 제품의 이름을 적어 주세요." };
-      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.slug)) return { i: i, msg: "‘" + label + "’의 주소 이름은 영문 소문자·숫자·하이픈만 쓸 수 있습니다." };
-      if (seen[p.slug]) return { i: i, msg: "주소 이름 ‘" + p.slug + "’이 두 제품에 겹칩니다." };
+      if (!filled(p.name)) return { i: i, sec: "basic", msg: i + 1 + "번째 제품의 이름을 적어 주세요." };
+      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.slug)) return { i: i, sec: "basic", msg: "‘" + label + "’의 주소 이름은 영문 소문자·숫자·하이픈만 쓸 수 있습니다." };
+      if (seen[p.slug]) return { i: i, sec: "basic", msg: "주소 이름 ‘" + p.slug + "’이 두 제품에 겹칩니다." };
       seen[p.slug] = true;
-      if (p.price.kind !== "consult" && p.price.amount == null) return { i: i, msg: "‘" + label + "’의 가격 금액을 적거나 ‘가격 상담’으로 바꿔 주세요." };
-      for (var k = 0; k < p.images.length; k++) {
-        if (!p.images[k].alt) return { i: i, msg: "‘" + label + "’의 " + (k + 1) + "번째 사진에 ‘사진에 보이는 것’을 적어 주세요." };
-      }
+      if (p.price && p.price.kind !== "consult" && p.price.amount == null)
+        return { i: i, sec: "price", msg: "‘" + label + "’의 가격 금액을 적거나 ‘가격 상담’으로 바꿔 주세요." };
     }
     return null;
   }
 
-  /** 저장할 때 빈 값 정리 */
+  /** 저장할 때 빈 값 정리 (사진 설명이 비었으면 이름과 공간으로 채움) */
   function cleanProduct(p) {
     var c = normalize(clone(p));
     c.lifestyle.layoutPoints = c.lifestyle.layoutPoints.filter(function (lp) {
@@ -1107,19 +1363,24 @@
     c.options = c.options.filter(function (o) {
       return o.name;
     });
+    c.options.forEach(function (o) {
+      if (o.cost && o.cost.type !== "extra") o.cost.amount = null;
+    });
     c.costScope = c.costScope.filter(function (s) {
       return s.item;
     });
     c.specGroups.forEach(function (g) {
-      g.items = g.items.filter(function (it) {
+      g.items = (g.items || []).filter(function (it) {
         return it.label;
       });
     });
     c.specGroups = c.specGroups.filter(function (g) {
       return g.group && g.items.length;
     });
+    if (c.price.kind === "consult") c.price.amount = null;
     c.images.forEach(function (img) {
       if (!img.optionsShown) img.optionsShown = [];
+      if (!filled(img.alt)) img.alt = (c.name || "제품") + " " + (img.space || "사진");
     });
     if (!c.customization.base.length && !c.customization.custom.length) c.customization = null;
     return c;
@@ -1131,16 +1392,18 @@
     if (bad) {
       if (currentTab() !== "products") switchTab("products");
       state.selected = bad.i;
+      state.openSecs[bad.sec] = true;
       renderAll();
+      goSection(bad.sec);
       setSaveMsg(bad.msg, true);
       return;
     }
     state.saving = true;
     $("#save-btn").disabled = true;
+    $("#revert-btn").disabled = true;
     setSaveMsg("저장하는 중입니다… 창을 닫지 마세요.");
 
     var files = [];
-    var names = [];
     var checks = [];
     if (state.dirtyProducts) checks.push(PRODUCTS_PATH);
     if (state.dirtyCategories) checks.push(CATEGORIES_PATH);
@@ -1170,12 +1433,8 @@
             });
             if (p.floorPlan) used[p.floorPlan.src] = true;
             if (!state.savedSlugs[p.slug]) {
-              var cat = state.categories.filter(function (c) {
-                return c.id === p.category;
-              })[0];
-              files.push({ path: "products/" + p.slug + ".html", b64: utf8ToB64(F.productPage(p, cat ? cat.fullLabel : "", siteVersion())) });
+              files.push({ path: "products/" + p.slug + ".html", b64: utf8ToB64(F.productPage(p, catOf(p).fullLabel, siteVersion())) });
             }
-            names.push(p.name);
           });
           // 이번에 목록에서 지운 제품의 페이지 파일만 지웁니다 (직접 만든 다른 파일은 건드리지 않음)
           Object.keys(state.loadedSlugs).forEach(function (slug) {
@@ -1219,6 +1478,7 @@
         state.dirtyProducts = false;
         state.dirtyCategories = false;
         state.saving = false;
+        takeSnapshot();
         renderAll();
         setSaveMsg("저장했습니다. 1~10분 뒤 사이트에 반영됩니다.");
       })
@@ -1255,7 +1515,6 @@
     });
     $("#preview").hidden = false;
     document.body.classList.add("no-scroll");
-    GD.checkBrokenImages(main);
     $("#preview").querySelector("button").focus();
   }
   function closePreview() {
@@ -1274,8 +1533,17 @@
     document.querySelectorAll("[data-panel]").forEach(function (p) {
       p.hidden = p.getAttribute("data-panel") !== tab;
     });
-    document.querySelector('[data-act-global="preview"]').hidden = tab !== "products";
     renderAll();
+  }
+
+  function goSection(sec) {
+    state.openSecs[sec] = true;
+    var el = document.getElementById("sec-" + sec);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ block: "start" });
+    var first = el.querySelector(".asec__body input:not([type=hidden]):not([disabled]), .asec__body textarea, .asec__body select");
+    if (first) first.focus({ preventScroll: true });
   }
 
   function onInput(e) {
@@ -1285,22 +1553,29 @@
     if (!b) return;
     var v;
     if (el.type === "checkbox") v = el.checked;
-    else if (el.tagName === "SELECT") v = JSON.parse(el.getAttribute("data-choices"))[Number(el.value)];
+    else if (el.type === "radio") {
+      if (!el.checked) return;
+      v = JSON.parse(el.getAttribute("data-choices"))[Number(el.value)];
+    } else if (el.tagName === "SELECT") v = JSON.parse(el.getAttribute("data-choices"))[Number(el.value)];
     else v = el.value;
     b.set(v);
     markDirty(currentTab());
-    if (b.opts.refresh) renderList();
+    // 글자 수, 평 환산, 금액 표시는 바로 고칩니다
+    if (el.hasAttribute("data-count")) {
+      var c = document.querySelector('[data-count-for="' + el.getAttribute("data-b") + '"]');
+      if (c) c.textContent = countText(el.value.length, el.getAttribute("data-count").split(",").map(Number));
+    }
+    var label = el.closest("label");
+    var py = label && label.querySelector("[data-py]");
+    if (py) py.textContent = pyeong(el.value);
+    var w = label && label.querySelector("[data-won]");
+    if (w) w.textContent = won(num(el.value));
     if (b.opts.rerender) renderEditor();
-  }
-
-  function showTokenBox(on) {
-    $("#token-box").hidden = !on;
-    $("#unlock-box").hidden = on;
-    var f = on ? $("#token-input") : $("#code-input");
-    if (f) f.focus();
+    else if (el.type === "checkbox" || el.type === "radio" || el.tagName === "SELECT") updateStatus();
   }
 
   function init() {
+    state.openSecs = { basic: true, intro: true, photos: true };
     var saved = null;
     try {
       saved = sessionStorage.getItem(TOKEN_KEY);
@@ -1349,7 +1624,7 @@
     // 처음 설정: 토큰으로 연결하고 보안코드로 잠가 저장
     $("#token-connect").addEventListener("click", function () {
       // 복사할 때 함께 붙는 띄어쓰기·줄바꿈·눈에 안 보이는 글자는 지웁니다
-      var t = $("#token-input").value.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "");
+      var t = $("#token-input").value.replace(/[\s​-‍⁠﻿]/g, "");
       var msg = $("#login-msg");
       if (!t) {
         msg.textContent = "토큰을 붙여 넣어 주세요.";
@@ -1383,46 +1658,65 @@
       });
     });
 
-    document.addEventListener("input", onInput);
+    document.addEventListener("input", function (e) {
+      if (e.target.id === "list-search") {
+        renderList();
+        return;
+      }
+      onInput(e);
+    });
     document.addEventListener("change", function (e) {
       var el = e.target;
-      // 옵션 이름처럼 다른 칸에 영향을 주는 글자는 입력을 마쳤을 때 화면을 다시 그립니다
-      if (el.hasAttribute && el.hasAttribute("data-b")) {
-        var bd = binds[Number(el.getAttribute("data-b"))];
-        if (bd && bd.opts.rerenderOnChange) renderEditor();
+      if (el.id === "list-filter") {
+        renderList();
         return;
       }
       if (el.hasAttribute && el.hasAttribute("data-upload")) {
-        var p = state.products[state.selected];
-        var kind = el.getAttribute("data-upload");
-        var files = Array.prototype.slice.call(el.files || []);
-        if (!files.length) return;
-        setSaveMsg("사진을 준비하는 중입니다…");
-        var chain = Promise.resolve();
-        var failed = [];
-        files.forEach(function (f, i) {
-          chain = chain.then(function () {
-            return prepareImage(f, p.slug, i + 1)
-              .then(function (r) {
-                if (kind === "plan") p.floorPlan = { src: r.src, alt: (p.name || "제품") + " 평면도", width: r.width, height: r.height };
-                else p.images.push({ src: r.src, alt: "", width: r.width, height: r.height, space: null, caption: null, optionsShown: [] });
-              })
-              .catch(function (err) {
-                failed.push(err.message);
-              });
-          });
-        });
-        chain.then(function () {
-          markDirty("products");
-          renderEditor();
-          if (failed.length) setSaveMsg("열지 못한 사진이 있습니다: " + failed.join(", ") + " (JPG·PNG로 바꿔 올려 주세요)", true);
-          else setSaveMsg("사진을 추가했습니다. 각 사진의 공간과 설명을 적은 뒤 저장하세요.");
-        });
+        addFiles(Array.prototype.slice.call(el.files || []), el.getAttribute("data-upload"));
+        el.value = "";
+        return;
       }
+      // 글자 칸에서 나올 때: 옵션 이름처럼 다른 칸에 영향을 주면 다시 그리고, 아니면 준비도만 고칩니다
+      if (el.hasAttribute && el.hasAttribute("data-b")) {
+        var bd = binds[Number(el.getAttribute("data-b"))];
+        if (bd && bd.opts.rerenderOnChange) renderEditor();
+        else updateStatus();
+      }
+    });
+    // 펼친 칸 기억 (다시 그려도 그대로)
+    document.addEventListener(
+      "toggle",
+      function (e) {
+        var d = e.target;
+        if (d.classList && d.classList.contains("asec")) state.openSecs[d.getAttribute("data-sec")] = d.open;
+      },
+      true
+    );
+    // 사진 끌어다 놓기
+    document.addEventListener("dragover", function (e) {
+      var z = e.target.closest && e.target.closest("[data-drop]");
+      if (z) {
+        e.preventDefault();
+        z.classList.add("is-over");
+      }
+    });
+    document.addEventListener("dragleave", function (e) {
+      var z = e.target.closest && e.target.closest("[data-drop]");
+      if (z) z.classList.remove("is-over");
+    });
+    document.addEventListener("drop", function (e) {
+      var z = e.target.closest && e.target.closest("[data-drop]");
+      if (!z) return;
+      e.preventDefault();
+      z.classList.remove("is-over");
+      var files = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []).filter(function (f) {
+        return /^image\//.test(f.type);
+      });
+      addFiles(files, z.getAttribute("data-drop"));
     });
 
     document.addEventListener("click", function (e) {
-      var t = e.target.closest ? e.target.closest("[data-act],[data-act-global],[data-pick],[data-tab],[data-preview-link]") : null;
+      var t = e.target.closest ? e.target.closest("[data-act],[data-act-global],[data-pick],[data-tab],[data-preview-link],[data-goto]") : null;
       if (!t) return;
       if (t.hasAttribute("data-preview-link")) {
         e.preventDefault();
@@ -1433,12 +1727,16 @@
         if (fn) fn();
         return;
       }
+      if (t.hasAttribute("data-goto")) {
+        goSection(t.getAttribute("data-goto"));
+        return;
+      }
       if (t.hasAttribute("data-pick")) {
         state.selected = Number(t.getAttribute("data-pick"));
         state.confirmDelete = false;
         renderAll();
         var ed = $("#editor");
-        if (ed.getBoundingClientRect().top < 0 || window.innerWidth < 1024) ed.scrollIntoView();
+        if (window.innerWidth < 1024 || ed.getBoundingClientRect().top < 0) ed.scrollIntoView();
         return;
       }
       if (t.hasAttribute("data-tab")) {
@@ -1446,8 +1744,10 @@
         return;
       }
       var g = t.getAttribute("data-act-global");
+      if (g !== "revert") state.confirmRevert = false;
       if (g === "logout") logout();
       if (g === "save") save();
+      if (g === "revert") revert();
       if (g === "preview") openPreview();
       if (g === "close-preview") closePreview();
       if (g === "change-code") {
@@ -1475,19 +1775,28 @@
           });
       }
       if (g === "add-product") {
-        state.products.push(newProduct());
+        var f = $("#list-filter") ? $("#list-filter").value : "";
+        state.products.push(newProduct(f || null));
         state.selected = state.products.length - 1;
         state.confirmDelete = false;
+        state.openSecs = { basic: true, intro: true, photos: true };
+        if ($("#list-search")) $("#list-search").value = "";
         markDirty("products");
         renderAll();
         $("#editor").scrollIntoView();
-        var first = $("#editor input[type=text]:not([disabled])");
-        if (first) first.focus();
+        var first = $("#editor .asec__body input[type=text]:not([disabled])");
+        if (first) first.focus({ preventScroll: true });
+        setSaveMsg("새 제품을 만들었습니다. 이름부터 적어 주세요. (저장해야 사이트에 반영됩니다)");
       }
     });
 
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !$("#preview").hidden && !document.querySelector("dialog[open]")) closePreview();
+      // Ctrl+S (맥: Cmd+S) 로 저장
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S") && !$("#save-btn").hidden) {
+        e.preventDefault();
+        if (!$("#save-btn").disabled) save();
+      }
     });
 
     window.addEventListener("beforeunload", function (e) {
@@ -1496,6 +1805,13 @@
         e.returnValue = "";
       }
     });
+  }
+
+  function showTokenBox(on) {
+    $("#token-box").hidden = !on;
+    $("#unlock-box").hidden = on;
+    var f = on ? $("#token-input") : $("#code-input");
+    if (f) f.focus();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
