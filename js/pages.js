@@ -126,11 +126,18 @@
 
     categories: function (el) {
       el.innerHTML =
-        '<dl class="grid-3">' +
+        '<ul class="cat-cards">' +
         GD.join(GD.categories, function (c) {
-          return '<div class="panel"><dt class="panel__title">' + esc(c.fullLabel) + '</dt><dd class="mt-3 text-lg">' + esc(c.description) + "</dd></div>";
+          return (
+            '<li class="panel cat-card"><h3 class="cat-card__name">' + esc(c.fullLabel) +
+            (c.size ? '<span class="cat-card__size">' + esc(c.size) + "</span>" : "") + "</h3>" +
+            (c.headline ? '<p class="cat-card__headline">' + esc(c.headline) + "</p>" : "") +
+            '<p class="mt-3 text-lg">' + esc(c.description) + "</p>" +
+            (c.note ? '<p class="mt-3 text-base text-soft">' + esc(c.note) + "</p>" : "") +
+            "</li>"
+          );
         }) +
-        "</dl>";
+        "</ul>";
     },
 
     checklist: function (el) {

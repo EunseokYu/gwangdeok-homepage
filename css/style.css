@@ -533,7 +533,7 @@ main:focus {
 }
 .cat-shortcuts ul {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .cat-shortcuts li + li {
   border-left: 1px solid var(--line);
@@ -547,6 +547,14 @@ main:focus {
   text-align: center;
   font-size: 1rem;
   font-weight: 600;
+  line-height: 1.35;
+  /* 좁은 화면에서도 낱말 중간에서 줄이 바뀌지 않게 (띄어쓰기에서만 줄바꿈) */
+  overflow-wrap: normal;
+}
+/* 아주 좁은 휴대폰(400px 미만)에서는 4칸이 들어가도록 글자를 조금 줄입니다 */
+@media (max-width: 24.999rem) {
+  .cat-shortcuts ul { padding-inline: 0.5rem; }
+  .cat-shortcuts a { font-size: 0.9375rem; letter-spacing: -0.02em; }
 }
 @media (min-width: 64rem) {
   .cat-shortcuts { display: none; }
@@ -1049,14 +1057,50 @@ main:focus {
   padding-top: 1.25rem;
 }
 
-/* 제품 분류 버튼 */
+/* 제품 분류 버튼: 모바일은 ‘전체’ 한 줄 + 2열, 넓은 화면은 한 줄 5칸 */
 .filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
 }
+.filters__btn:first-child {
+  grid-column: 1 / -1;
+}
 @media (min-width: 40rem) {
-  .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  .filters { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; }
+  .filters__btn:first-child { grid-column: auto; }
+}
+
+/* 제품 분류 안내 카드 (제품 안내 페이지) */
+.cat-cards {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 48rem) {
+  .cat-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+}
+.cat-card__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.cat-card__size {
+  border-radius: 4px;
+  background: var(--brand-tint);
+  padding: 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--brand);
+}
+.cat-card__headline {
+  margin-top: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.5;
 }
 .filters__btn {
   display: inline-flex;

@@ -13,7 +13,7 @@
  *
  * ── 칸 설명 ───────────────────────────────────────────────
  * slug          주소에 쓰는 영문 이름. products/<slug>.html 파일 이름과 같아야 합니다.
- * category      "mobile-home"(이동식주택) / "shelter"(농촌체류형 쉼터) / "container"(중고컨테이너)
+ * category      "mobile-home"(이동식주택) / "shelter"(농촌체류형 쉼터) / "farm-hut"(농막) / "container"(컨테이너)
  * name          제품 이름. 정식 모델명이 없으면 구성으로 부릅니다. 예: "방 1개와 거실형"
  * availability  "on-sale"(판매 중) / "discontinued"(판매 종료) / null(확인 전)
  * summary       제품 카드의 한 줄 설명
