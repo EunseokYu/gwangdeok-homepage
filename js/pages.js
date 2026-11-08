@@ -21,6 +21,28 @@
   var GD = window.GD;
   var esc = GD.esc;
 
+  /* ───── 제품 안내 페이지 머리말: 고른 분류의 이름과 설명을 크게 보여 줍니다 ───── */
+  var introDefault = null;
+  function updateCategoryIntro(active) {
+    var box = document.querySelector("[data-category-intro]");
+    if (!box) return;
+    if (introDefault === null) introDefault = { html: box.innerHTML, title: document.title };
+    if (active === "all" || !GD.isCategory(active)) {
+      box.innerHTML = introDefault.html;
+      document.title = introDefault.title;
+      return;
+    }
+    var c = GD.getCategory(active);
+    box.innerHTML =
+      GD.breadcrumb([{ label: "홈", href: "index.html" }, { label: "제품 안내", href: "products.html" }, { label: c.fullLabel }]) +
+      '<div class="intro__title intro__title--cat"><h1>' + esc(c.fullLabel) + "</h1>" +
+      (c.size ? '<span class="cat-card__size intro__size">' + esc(c.size) + "</span>" : "") + "</div>" +
+      (c.headline ? '<p class="intro__headline">' + esc(c.headline) + "</p>" : "") +
+      '<p class="intro__desc">' + esc(c.description) + "</p>" +
+      (c.note ? '<p class="mt-3 text-base text-soft">' + esc(c.note) + "</p>" : "");
+    document.title = c.fullLabel + " | " + GD.company.shortName;
+  }
+
   /* ───── 제품 분류 버튼 + 카드 ───── */
   function productBrowser(el) {
     var useUrl = el.getAttribute("data-url") === "true";
@@ -61,6 +83,7 @@
           : '<div class="empty-box mt-4"><p>이 분류에 등록된 제품이 아직 없습니다.</p><p class="mt-2">전화로 문의해 주시면 안내해 드립니다. <a class="link-strong text-brand" href="' +
             GD.telHref(GD.company.phone.main) + '">' + esc(GD.company.phone.main) + "</a></p></div>");
       GD.checkBrokenImages(el);
+      if (useUrl) updateCategoryIntro(active);
     }
 
     el.addEventListener("click", function (e) {

@@ -731,7 +731,32 @@ main:focus {
   font-size: 1.125rem;
   color: var(--ink-soft);
 }
+/* 분류를 골랐을 때의 머리말 (예: 농막 + 규모 + 소개 한 줄) */
+.intro__title--cat h1 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.intro__title--cat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+}
+.intro__size {
+  font-size: 1.125rem;
+  padding: 0.125rem 0.625rem;
+}
+.intro__headline {
+  margin-top: 1rem;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.intro__headline + .intro__desc {
+  margin-top: 0.75rem;
+}
 @media (min-width: 48rem) {
+  .intro__headline { font-size: 1.625rem; }
   .intro__inner { padding-block: 3.5rem; }
   .intro__title { font-size: 2.75rem; }
   .intro__desc { font-size: 1.25rem; }
