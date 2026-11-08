@@ -22,7 +22,9 @@
     if (!p.name || /예시/.test(p.name)) add("필수", "제품 이름이 비었거나 ‘예시’가 들어 있습니다.");
     if (!GD.isCategory(p.category)) add("필수", "제품 분류(category) 값이 올바르지 않습니다: " + p.category);
     if (p.availability == null) add("필수", "현재 판매 여부(availability)가 확인되지 않았습니다.");
-    if (!p.tagline) add("확인", "특징 한 문장(tagline)이 비어 있습니다.");
+    if (!p.tagline) add("확인", "한 문장 소개(tagline)가 비어 있습니다.");
+    if (!p.shortDescription) add("확인", "짧은 소개(shortDescription)가 비어 있습니다.");
+    else if (p.shortDescription.length > 160) add("확인", "짧은 소개가 " + p.shortDescription.length + "자입니다. 140자 안팎으로 줄여 주세요.");
     if (!p.layoutSummary) add("확인", "공간 구성 요약(layoutSummary)이 비어 있습니다.");
 
     // 사진
@@ -95,7 +97,7 @@
     var ls = p.lifestyle || {};
     var lsText = JSON.stringify(ls);
     if (/예시/.test(lsText)) add("필수", "‘어떤 생활을 위한 집인가요’에 예시 문구가 남아 있습니다.");
-    if (/예시/.test(p.tagline || "") || /예시/.test(p.summary || "")) add("필수", "한 줄 설명이나 특징 문장에 예시 문구가 남아 있습니다.");
+    if (/예시/.test(p.tagline || "") || /예시/.test(p.summary || "") || /예시/.test(p.shortDescription || "")) add("필수", "한 줄 설명이나 특징 문장에 예시 문구가 남아 있습니다.");
     if (/2주/.test((p.schedule && p.schedule.productionNote) || "")) add("확인", "제작 기간 문구에 ‘2주’가 있습니다. 일부 사례라는 조건과 회사 확인 여부를 확인하세요.");
 
     // 사례 연결

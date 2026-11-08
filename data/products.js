@@ -14,10 +14,11 @@
  * name          제품 이름. 정식 모델명이 없으면 구성으로 부릅니다. 예: "방 1개와 거실형"
  * availability  "on-sale"(판매 중) / "discontinued"(판매 종료) / null(확인 전)
  * summary       제품 카드의 한 줄 설명
- * tagline       상세 페이지 첫 화면의 ‘특징 한 문장’
+ * tagline       상세 페이지 대표 사진 아래 큰 글씨 한 문장 (어떤 생활에 어울리는 집인지)
+ * shortDescription  그 아래 짧은 소개 2~3문장 (약 80~140자)
  * layoutSummary 공간 구성 요약. 예: "방 1 · 거실 · 주방 · 욕실"
  * images[]      사진 { src, alt, width, height, space(공간 이름), caption(설명), optionsShown(사진에 들어간 옵션 이름), isDesignExample }
- * lifestyle     { fitsFor(쓰기 좋은 경우), layoutPoints[{layout, benefit}], otherPlanHint, intro(설명 문단) }
+ * lifestyle     { fitsFor, layoutPoints[{layout, benefit}], otherPlanHint, intro } — 보관용. intro 는 shortDescription 이 없을 때 짧은 소개로 쓰입니다.
  * floorPlan     평면도 이미지 (없으면 null — 임의로 그린 도면을 넣지 마세요)
  * size          { exterior, interior, loft, deck } 각각 { value, basis(산정 기준) } 또는 null. 다락·데크는 실내 면적에 합치지 않습니다.
  * rooms[]       공간별 구성 { name, note }
@@ -40,7 +41,8 @@ GD.products = [
     "name": "방 1개와 거실형 (예시)",
     "availability": null,
     "summary": "침실과 거실을 나눈 구성 (예시)",
-    "tagline": "침실과 거실을 나눠, 쉬는 공간과 생활 공간을 구분한 이동식주택입니다. (예시 문구)",
+    "tagline": "쉬는 곳은 아늑하게, 머무는 곳은 여유롭게. (예시 문구)",
+    "shortDescription": "주말에 머물거나 한두 분이 지내기 좋은 구성입니다. 침실을 거실 반대쪽에 두어 손님이 와도 쉬는 공간이 나뉩니다. (예시 문구)",
     "layoutSummary": "방 1 · 거실 · 주방 · 욕실",
     "images": [
       {
@@ -339,6 +341,7 @@ GD.products = [
     "availability": null,
     "summary": "평면·기본 사양 안내",
     "tagline": null,
+    "shortDescription": null,
     "layoutSummary": null,
     "images": [
       {
@@ -513,6 +516,7 @@ GD.products = [
     "availability": null,
     "summary": "매입·판매 상담",
     "tagline": null,
+    "shortDescription": null,
     "layoutSummary": null,
     "images": [
       {

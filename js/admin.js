@@ -97,6 +97,8 @@
     return "/repos/" + REPO.owner + "/" + REPO.name + p;
   }
   function friendly(err) {
+    if (!err.status && /ISO-8859-1|headers/i.test(err.message))
+      return "토큰에 한글이나 다른 글자가 섞여 있습니다. GitHub 에서 복사한 github_pat_ 로 시작하는 글자만 다시 붙여 넣어 주세요.";
     if (!err.status) return "인터넷 연결을 확인해 주세요. (" + err.message + ")";
     if (err.status === 401) return "토큰이 맞지 않거나 만료되었습니다. 토큰을 다시 확인해 주세요.";
     if (err.status === 403 || err.status === 404)
@@ -196,6 +198,15 @@
         return new TextDecoder().decode(buf);
       });
   }
+  /** GitHub 토큰 모양 확인 (영문·숫자·밑줄만, github_pat_ 또는 ghp_ 로 시작) */
+  function checkToken(t) {
+    if (/[^\x21-\x7E]/.test(t))
+      return "토큰 칸에 한글이나 다른 글자가 들어 있습니다. 보안코드가 아니라, GitHub 에서 복사한 github_pat_ 로 시작하는 글자만 붙여 넣어 주세요.";
+    if (!/^(github_pat_|ghp_)[A-Za-z0-9_]+$/.test(t))
+      return "토큰 모양이 맞지 않습니다. GitHub 에서 복사한 github_pat_ 로 시작하는 글자 전체를 붙여 넣어 주세요.";
+    return null;
+  }
+
   /** 보안코드 규칙: 12자 이상, 숫자만으로 된 코드는 안 됨 */
   function checkNewCode(a, b) {
     if (!a || a.length < 12) return "보안코드는 12자 이상으로 만들어 주세요. (단어 4개 이상의 문장을 권합니다)";
@@ -437,6 +448,7 @@
       availability: null,
       summary: null,
       tagline: null,
+      shortDescription: null,
       layoutSummary: null,
       images: [],
       lifestyle: { fitsFor: [], layoutPoints: [], otherPlanHint: null, intro: [] },
@@ -655,11 +667,16 @@
       }, function (v) {
         p.summary = nn(v);
       }, { help: "제품 목록 카드에 보이는 짧은 설명", placeholder: "예: 침실과 거실을 나눈 구성" }) +
-      fArea("특징 한 문장", function () {
+      fArea("한 문장 소개 (큰 글씨)", function () {
         return p.tagline;
       }, function (v) {
         p.tagline = nn(v);
-      }, { rows: 2, help: "상세 페이지 첫 화면 제목 아래 문장" }) +
+      }, { rows: 2, help: "대표 사진 아래 큰 글씨. 어떤 생활에 어울리는 집인지 한 문장으로. 예: 텃밭을 돌보고, 편히 쉬어 가는 작은 공간." }) +
+      fArea("짧은 소개 (2~3문장)", function () {
+        return p.shortDescription;
+      }, function (v) {
+        p.shortDescription = nn(v);
+      }, { rows: 3, help: "약 80~140자. 누가 어떤 상황에 쓰기 좋은지, 공간 구성의 장점 한두 가지." }) +
       fText("공간 구성 요약", function () {
         return p.layoutSummary;
       }, function (v) {
@@ -928,7 +945,7 @@
       esc(CAT_HINT[p.category] || p.category) + " · products/" + esc(p.slug) + ".html" + (saved ? "" : ' <span class="tag-dev">저장 전</span>') + "</p></div>" +
       fieldset("기본 정보", basic) +
       fieldset("사진", photosHtml(p), "첫 번째 사진이 대표 사진입니다. 실제 제품 사진만 올려 주세요.") +
-      fieldset("어떤 생활을 위한 집인가요", life) +
+      fieldset("생활 설명 (보관용)", life, "지금 상세 화면에는 위의 ‘짧은 소개’만 보입니다. 이 칸은 나중을 위해 보관합니다.") +
       fieldset("평면과 크기", plan, "외형 크기, 실내 면적, 다락·데크는 서로 합치지 말고 따로 적고, 기준을 함께 적어 주세요.") +
       fieldset("기본 사양", specs, "비워 둔 칸은 화면에 ‘상담 시 안내’로 보입니다. 재료 이름만으로 성능을 보장하는 표현은 쓰지 마세요.") +
       fieldset("선택 옵션", options, "회사에서 승인한 옵션만 적습니다.") +
@@ -1331,10 +1348,17 @@
 
     // 처음 설정: 토큰으로 연결하고 보안코드로 잠가 저장
     $("#token-connect").addEventListener("click", function () {
-      var t = $("#token-input").value.trim();
+      // 복사할 때 함께 붙는 띄어쓰기·줄바꿈·눈에 안 보이는 글자는 지웁니다
+      var t = $("#token-input").value.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "");
       var msg = $("#login-msg");
       if (!t) {
         msg.textContent = "토큰을 붙여 넣어 주세요.";
+        return;
+      }
+      var tokenProblem = checkToken(t);
+      if (tokenProblem) {
+        msg.textContent = tokenProblem;
+        $("#token-input").focus();
         return;
       }
       var bad = checkNewCode($("#code-new").value, $("#code-new2").value);

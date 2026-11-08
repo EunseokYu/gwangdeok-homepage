@@ -180,10 +180,13 @@
       '" height="' +
       (image.height || "") +
       '"' +
-      (opts.eager ? ' fetchpriority="high"' : ' loading="lazy"') +
-      ' decoding="async" data-placeholder="' +
-      GD.esc(opts.placeholderLabel || "사진 준비 중") +
-      '">' +
+      (opts.eager ? ' fetchpriority="high"' : opts.noLazy ? "" : ' loading="lazy"') +
+      ' decoding="async"' +
+      // srcKey 가 있으면 파일이 없을 때의 처리를 그 화면(제품 상세 갤러리)이 직접 합니다
+      (opts.srcKey
+        ? ' data-src-key="' + GD.esc(opts.srcKey) + '"'
+        : ' data-placeholder="' + GD.esc(opts.placeholderLabel || "사진 준비 중") + '"') +
+      ">" +
       (image.isDesignExample ? '<span class="design-label">디자인 예시</span>' : "") +
       "</span>"
     );
